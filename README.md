@@ -1,6 +1,6 @@
 # DoneIn60seconds
 C# scripts for TabularEditor
-This repository contains the C# macro scripts demonstrated in the Done in 60 Seconds session at New Stars of Data, held on May 16, 2025. The presentation showcases how automation in Tabular Editor can dramatically speed up common tasks when building and maintaining Power BI data models.
+This repository contains the C# macro scripts demonstrated in the Done in 60 Seconds session at New Stars of Data, held on May 16, 2025. The presentation showcases how automation in Tabular Editor can dramatically speed up common tasks when developing Power BI semantic models.
 
 A recording of the session will be available, providing context and guidance on how to use each script effectively.
 
