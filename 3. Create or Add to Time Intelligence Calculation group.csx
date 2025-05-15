@@ -14,16 +14,11 @@
 // If you know of some measures with % format, this can be updated in the logic for the calculation item before running the script
 
 
-
 #r "System.Drawing"
-#r "Microsoft.VisualBasic"
 using System.Windows.Forms;
 using System.Drawing;
 using System.Linq;
 using System.Collections.Generic;
-using Microsoft.VisualBasic;
-
-
 
 // Don't show the script execution dialog or cursor
 ScriptHelper.WaitFormVisible = false;
@@ -101,16 +96,25 @@ if (cgTable == null) // If user selected "No" or no calc groups exist
     string defaultTableName = "Time Intelligence";
     string defaultColumnName = "Time Calculation";
 
-    _timeIntelligenceCalcGroupTable = Interaction.InputBox("TABLE NAME CALCULATION GROUP:", "Calculation Group name", defaultTableName);
-    _timeIntelligenceCalcGroupColumn = Interaction.InputBox("COLUMN NAME CALCULATION GROUP:", "Column name", defaultColumnName);
+ _timeIntelligenceCalcGroupTable = ShowInputDialog("TABLE NAME CALCULATION GROUP:", "Calculation Group name", defaultTableName);
+_timeIntelligenceCalcGroupColumn = ShowInputDialog("COLUMN NAME CALCULATION GROUP:", "Column name", defaultColumnName);
+
 
     // Create a new Calculation Group Table
     cgTable = Model.AddCalculationGroup(_timeIntelligenceCalcGroupTable);
 
     if (cgTable != null)
     {
-        (cgTable.Columns["Name"] as DataColumn).Name = _timeIntelligenceCalcGroupColumn;
-        (cgTable.Columns[_timeIntelligenceCalcGroupColumn] as DataColumn).Description = "The selected time intelligence";
+        //(cgTable.Columns["Name"] as DataColumn).Name = _timeIntelligenceCalcGroupColumn;
+        var nameColumn = cgTable.Columns["Name"] as TabularEditor.TOMWrapper.DataColumn;
+if (nameColumn != null)
+    nameColumn.Name = _timeIntelligenceCalcGroupColumn;
+
+        var renamedColumn = cgTable.Columns[_timeIntelligenceCalcGroupColumn] as TabularEditor.TOMWrapper.DataColumn;
+
+if (renamedColumn != null)
+    renamedColumn.Description = "The selected time intelligence";
+
         cgTable.Description = "Calculation group for dynamic time intelligence.";
         cgTable.CalculationGroup.Precedence = 0;
     }
@@ -972,9 +976,7 @@ RETURN
         continue;
     }
     
-    
-
-    
+   
     // Placeholder: additional Time Intelligence logic goes here
   //  AddCalculationItemIfNotExists(item, "SELECTEDMEASURE()", ordinal++, "Time Intelligence - " + item, null);
 }
