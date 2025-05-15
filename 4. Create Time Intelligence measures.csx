@@ -26,6 +26,7 @@ using System.Windows.Forms;
 using System.Drawing;
 using System.Linq;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 // Hide script dialog and cursor
 ScriptHelper.WaitFormVisible = false;
@@ -179,22 +180,13 @@ foreach (var m in selectedMeasures)
 
  // Use the DAX expression from the calculation item, replacing SELECTEDMEASURE() with the actual measure reference
 
-    string daxExpression;
+ 
+string daxExpression = Regex.Replace(
+    c.Expression,
+    @"(?i)\bSELECTEDMEASURE\s*\(\s*\)",  // Case-insensitive + optional whitespace
+    m.DaxObjectName
+);
 
-// Normalize the expression before replacing
-string expr = c.Expression;
-
-// Replace all known casing and spacing variations
-expr = expr.Replace("SELECTEDMEASURE()", m.DaxObjectName);
-expr = expr.Replace("SELECTEDMEASURE ()", m.DaxObjectName);
-expr = expr.Replace("SELECTEDMEASURE ( )", m.DaxObjectName);
-expr = expr.Replace("SELECTEDMEASURE( )", m.DaxObjectName);
-expr = expr.Replace("selectedmeasure()", m.DaxObjectName);
-expr = expr.Replace("selectedmeasure ()", m.DaxObjectName);
-expr = expr.Replace("selectedmeasure ( )", m.DaxObjectName);
-// Add more if needed...
-
-daxExpression = expr;
 
         // Display folder logic
         string displayFolderBase = m.DisplayFolder;
