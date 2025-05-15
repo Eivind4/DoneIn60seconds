@@ -178,8 +178,23 @@ foreach (var m in selectedMeasures)
             : m.FormatString;
 
  // Use the DAX expression from the calculation item, replacing SELECTEDMEASURE() with the actual measure reference
-string daxExpression;
-    daxExpression = c.Expression.Replace("SELECTEDMEASURE()", m.DaxObjectName);
+
+    string daxExpression;
+
+// Normalize the expression before replacing
+string expr = c.Expression;
+
+// Replace all known casing and spacing variations
+expr = expr.Replace("SELECTEDMEASURE()", m.DaxObjectName);
+expr = expr.Replace("SELECTEDMEASURE ()", m.DaxObjectName);
+expr = expr.Replace("SELECTEDMEASURE ( )", m.DaxObjectName);
+expr = expr.Replace("SELECTEDMEASURE( )", m.DaxObjectName);
+expr = expr.Replace("selectedmeasure()", m.DaxObjectName);
+expr = expr.Replace("selectedmeasure ()", m.DaxObjectName);
+expr = expr.Replace("selectedmeasure ( )", m.DaxObjectName);
+// Add more if needed...
+
+daxExpression = expr;
 
         // Display folder logic
         string displayFolderBase = m.DisplayFolder;
