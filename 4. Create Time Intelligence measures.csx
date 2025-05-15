@@ -9,12 +9,11 @@
  // It runs a nested for-loop to create all the time intelligence measures
  // 
  // For each measure with Time Intelligence, it will do the following:
- // 1. Creates the DAX expression as a combination of measure and selected Time Intelligence calculation item
- // 2. Check if the expression already exists, if so: skipping creation
- // 3. Adds a display-folder. 
- // 4. Apply logic for formatting. If calculation contains idx, % or pct, also set to %, if not use the format from the selected measure
- // 5. Addes a discription as a combination of the description for the measure and time intelligence
- // 6. Ensures a format on the DAX-expression, but not via DAXformatter (if it's not formatted, it's not DAX)
+ // 1. Creates the DAX expression from the selected Time Intelligence calculation item, and replaces selectedmeasure(), with the measure object (DaxObjectName)
+ // 2. Adds a display-folder. 
+ // 3. Apply logic for formatting. If calculation contains idx, % or pct, always set to %, if not use the format from the selected measure
+ // 4. Adds a description as a combination of the description for the measure and time intelligence
+ // 5. Keeps the format of the Calculation item  expression, but not formatting via DAXformatter (if it's not formatted, it's not DAX)
  // 
  // To ensure the best result, ensure that base-measures have format string and descriptions, and descriptions are included for time intelligence calculations
  //     - This is ensured if macros are run as part of this creation
@@ -178,13 +177,9 @@ foreach (var m in selectedMeasures)
             ? "#,0.0%;-#,0.0%;#,0.0%"
             : m.FormatString;
 
-        // Compose DAX expression using string concatenation
-string daxExpression =
-    "CALCULATE(" + Environment.NewLine +
-    "    " + m.DaxObjectName + "," + Environment.NewLine +
-    "    " + selectedCalcGroupTable.DaxObjectName + "[" + selectedCalcGroupTable.Columns[0].Name + "] = \"" + c.Name + "\"" + Environment.NewLine +
-    ")";
-
+ // Use the DAX expression from the calculation item, replacing SELECTEDMEASURE() with the actual measure reference
+string daxExpression;
+    daxExpression = c.Expression.Replace("SELECTEDMEASURE()", m.DaxObjectName);
 
         // Display folder logic
         string displayFolderBase = m.DisplayFolder;
