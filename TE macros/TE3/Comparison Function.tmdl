@@ -1,0 +1,44 @@
+createOrReplace
+
+	/// Relative difference between measure1 and measure2.
+	function 'Comparison.Deviation' = ```
+			
+			// Function to compare two numbers and return
+			// the relative difference between them
+			(
+			    // What you are measuring
+			    actual,
+			    
+			    // What you want to compare to
+			    target
+			)
+			=>
+			    VAR _Target = target
+			    VAR _Delta = actual - _Target
+			   
+			    RETURN
+			        _Delta
+			```
+		lineageTag: f2ce614a-ef76-49b3-80f8-7f303fb17517
+
+	/// Relative percentage difference between measure1 and measure2.
+	function 'Comparison.Pct_change' = ```
+			
+			// Function to compare two numbers and return
+			// the relative percentage difference between them
+			(
+			    // What you are measuring
+			    actual,
+			    
+			    // What you want to compare to
+			    target
+			)
+			=>
+			    VAR _Target = target
+			    VAR _Delta = actual - _Target
+			    VAR _Result = DIVIDE ( _Delta, _Target )
+			    RETURN
+			        _Result
+			```
+		lineageTag: 0ce23e4a-5cbd-48a1-a59c-fa24b39b089b
+

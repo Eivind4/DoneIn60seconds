@@ -1,0 +1,421 @@
+createOrReplace
+
+	relationship 6ab2df37-2b57-4752-9e9c-bd4d37ae8db6
+		isActive: false
+		fromColumn: Date.Date
+		toColumn: Disconnected_Calendar.Date
+
+	/// Calculation group to dynamically format time frame on axis, using a disconnected calendar
+	table 'Months to show'
+		lineageTag: 656e0997-9491-4b87-9455-ad6845edb55a
+
+		calculationGroup
+			precedence: 1
+
+			/// All dates until the last selected date
+			calculationItem 'This year to selected date' = ```
+					
+					// Reference: https://www.sqlbi.com/articles/show-previous-6-months-of-data-from-single-slicer-selection/
+					--  This calculation item works together with the Previous Date table to show
+					--  year to date from the currently selected date in the Date table.
+					--
+					
+					VAR _ReferenceDate = MAX ( 'Date'[Date] )
+					
+					VAR _StartDate = Date(Year(_ReferenceDate),1,1)
+					VAR _PreviousDates =
+					    DATESBETWEEN (
+					        'Disconnected_Calendar'[Date],
+					        _StartDate,
+					        _ReferenceDate
+					    )
+					VAR Result =
+					    CALCULATE (
+					        SELECTEDMEASURE (),
+					        REMOVEFILTERS ( 'Date' ),
+					        KEEPFILTERS ( _PreviousDates ),
+					        USERELATIONSHIP ( 'Disconnected_Calendar'[Date], 'Date'[Date] )
+					    )
+					RETURN Result        
+					
+					
+					
+					
+					```
+
+			/// Shows the entire year for the last selected date
+			calculationItem 'Show entire selected year' = ```
+					
+					// Reference: https://www.sqlbi.com/articles/show-previous-6-months-of-data-from-single-slicer-selection/
+					--  This calculation item works together with the Previous Date table to show
+					--  entire year for the selected date in the Date table.
+					--
+					
+					
+					VAR ReferenceDate = MAX ( 'Date'[Date]  )    
+					VAR StartDate = Date(Year(ReferenceDate),1,1)
+					VAR EndDate = Date(Year(ReferenceDate),12,31)
+					VAR NextDates =
+					    DATESBETWEEN (
+					        'Disconnected_Calendar'[Date],
+					        StartDate,
+					        EndDate
+					    )
+					VAR Result =
+					    CALCULATE (
+					        SELECTEDMEASURE (),
+					        REMOVEFILTERS ( 'Date'  ),
+					        KEEPFILTERS ( NextDates ),
+					        USERELATIONSHIP ( 'Disconnected_Calendar'[Date], 'Date'[Date]  )
+					    )
+					RETURN Result      
+					
+					
+					
+					
+					```
+
+			/// Shows the last 6 months from the selected date
+			calculationItem 'Previous 6 Months' = ```
+					
+					// Reference: https://www.sqlbi.com/articles/show-previous-6-months-of-data-from-single-slicer-selection/
+					--  This calculation item works together with the Previous Date table to show
+					
+					--
+					
+					
+					VAR NumOfMonths = 6
+					VAR ReferenceDate = MAX ( 'Date'[Date] )
+					VAR PreviousDates =
+					    DATESINPERIOD (
+					        'Disconnected_Calendar'[Date],
+					        ReferenceDate,
+					        -NumOfMonths,
+					        MONTH
+					    )
+					VAR Result =
+					    CALCULATE (
+					        SELECTEDMEASURE (),
+					        REMOVEFILTERS ( 'Date'  ),
+					        KEEPFILTERS ( PreviousDates ),
+					        USERELATIONSHIP ( 'Date'[Date],'Disconnected_Calendar'[Date] )
+					    )
+					RETURN Result    
+					
+					
+					
+					
+					```
+
+			/// Shows the last 12 months from the selected date
+			calculationItem 'Previous 12 Months' = ```
+					
+					// Reference: https://www.sqlbi.com/articles/show-previous-6-months-of-data-from-single-slicer-selection/
+					--  This calculation item works together with the Previous Date table to show
+					
+					--
+					
+					
+					VAR NumOfMonths = 12
+					VAR ReferenceDate = MAX ( 'Date'[Date] )
+					VAR PreviousDates =
+					    DATESINPERIOD (
+					        'Disconnected_Calendar'[Date],
+					        ReferenceDate,
+					        -NumOfMonths,
+					        MONTH
+					    )
+					VAR Result =
+					    CALCULATE (
+					        SELECTEDMEASURE (),
+					        REMOVEFILTERS ( 'Date'  ),
+					        KEEPFILTERS ( PreviousDates ),
+					        USERELATIONSHIP ( 'Date'[Date],'Disconnected_Calendar'[Date] )
+					    )
+					RETURN Result    
+					
+					
+					
+					
+					```
+
+		/// The time frame to show on axis when disconnected calendar is used
+		column 'Months to show'
+			dataType: string
+			lineageTag: 82da33ee-8c8b-4042-977e-6b6853f2e10d
+			sourceColumn: Name
+			sortByColumn: Ordinal
+
+		column Ordinal
+			dataType: int64
+			isHidden
+			lineageTag: 36baaf10-b515-4528-96f3-645e18bf2f87
+			sourceColumn: Ordinal
+
+	/// Date-table
+	table Disconnected_Calendar
+		lineageTag: f5cf5c03-c4c5-42c9-872a-a7d0b7d5597a
+		dataCategory: Time
+
+		/// YYYY-MM-DD
+		column Date
+			dataType: dateTime
+			isKey
+			formatString: mm/dd/yyyy
+			displayFolder: 4. Date
+			lineageTag: e115f1c7-28cf-4ed0-b835-3e0beb352eaf
+			summarizeBy: none
+			sourceColumn: Date
+
+			annotation SummarizationSetBy = Automatic
+
+			annotation UnderlyingDateTimeDataType = Date
+
+		/// YYYY
+		column Year
+			dataType: int64
+			formatString: 0
+			displayFolder: 1. Year
+			lineageTag: 446c850e-7236-44f3-b7f0-90e1bd7fa740
+			summarizeBy: none
+			sourceColumn: Year
+
+			annotation SummarizationSetBy = Automatic
+
+		/// Q1 2024
+		column 'Year Quarter'
+			dataType: string
+			isHidden
+			displayFolder: 2. Quarter
+			lineageTag: c3c7ade6-4076-46a4-915e-47eafef1b059
+			summarizeBy: none
+			sourceColumn: Year Quarter
+			sortByColumn: 'Year Quarter Number'
+
+			changedProperty = IsHidden
+
+			annotation SummarizationSetBy = Automatic
+
+		/// Used for sorting Year Quarter
+		column 'Year Quarter Number'
+			dataType: int64
+			isHidden
+			formatString: 0
+			displayFolder: 2. Quarter
+			lineageTag: a4311349-3e87-4139-a783-f8855a7cfa66
+			summarizeBy: none
+			sourceColumn: Year Quarter Number
+
+			annotation SummarizationSetBy = Automatic
+
+		/// I.e. Q1
+		column Quarter
+			dataType: string
+			displayFolder: 2. Quarter
+			lineageTag: dcb20426-2969-4f94-bac4-21a77449a02a
+			summarizeBy: none
+			sourceColumn: Quarter
+
+			annotation SummarizationSetBy = Automatic
+
+		/// I.e. January 2024
+		column 'Year Month'
+			dataType: string
+			displayFolder: 3. Month
+			lineageTag: 0facb371-84c2-4a90-be30-7639fb9ca41d
+			summarizeBy: none
+			sourceColumn: Year Month
+			sortByColumn: 'Year Month Number'
+
+			annotation SummarizationSetBy = Automatic
+
+		/// I.e. Jan 2024
+		column 'Year Month Short'
+			dataType: string
+			displayFolder: 3. Month
+			lineageTag: 60d1ff78-fe2e-4161-a981-331823e8a279
+			summarizeBy: none
+			sourceColumn: Year Month Short
+			sortByColumn: 'Year Month Number'
+
+			annotation SummarizationSetBy = Automatic
+
+		/// Used for sorting Year Month
+		column 'Year Month Number'
+			dataType: int64
+			isHidden
+			formatString: 0
+			displayFolder: 3. Month
+			lineageTag: fa72c1ab-c874-45ff-9e62-f5ad0d932c54
+			summarizeBy: none
+			sourceColumn: Year Month Number
+
+			annotation SummarizationSetBy = Automatic
+
+		/// I.e. January
+		column Month
+			dataType: string
+			displayFolder: 3. Month
+			lineageTag: c65faabb-7966-4397-a5a8-2e367f10df7f
+			summarizeBy: none
+			sourceColumn: Month
+			sortByColumn: 'Month Number'
+
+			annotation SummarizationSetBy = Automatic
+
+		/// I.e. Jan
+		column 'Month Short'
+			dataType: string
+			displayFolder: 3. Month
+			lineageTag: 19d27af7-0600-47e0-b5da-1b749c689ae2
+			summarizeBy: none
+			sourceColumn: Month Short
+			sortByColumn: 'Month Number'
+
+			annotation SummarizationSetBy = Automatic
+
+		/// I.e. 1 (=January)
+		column 'Month Number'
+			dataType: int64
+			formatString: 0
+			displayFolder: 3. Month
+			lineageTag: 9cb950a8-71d6-48c9-b76f-88ef9ab2c882
+			summarizeBy: none
+			sourceColumn: Month Number
+
+			annotation SummarizationSetBy = Automatic
+
+		/// I.e. Monday
+		column 'Day of Week'
+			dataType: string
+			displayFolder: 5. Day
+			lineageTag: 9cb475f8-0c43-4d10-a7c8-b4c18977ec2a
+			summarizeBy: none
+			sourceColumn: Day of Week
+			sortByColumn: 'Day of Week Number'
+
+			annotation SummarizationSetBy = Automatic
+
+		/// I.e. Mon
+		column 'Day of Week Short'
+			dataType: string
+			displayFolder: 5. Day
+			lineageTag: bc828810-1098-4669-b31b-57a521aed0bf
+			summarizeBy: none
+			sourceColumn: Day of Week Short
+			sortByColumn: 'Day of Week Number'
+
+			annotation SummarizationSetBy = Automatic
+
+		/// 1=Sunday to 7=Saturday
+		column 'Day of Week Number'
+			dataType: int64
+			isHidden
+			formatString: 0
+			displayFolder: 5. Day
+			lineageTag: a37e0772-9223-4eb4-a974-cec639f64af6
+			summarizeBy: none
+			sourceColumn: Day of Week Number
+
+			changedProperty = IsHidden
+
+			annotation SummarizationSetBy = Automatic
+
+		/// TRUE/FALSE
+		column 'Working Day'
+			dataType: boolean
+			isHidden
+			formatString: """TRUE"";""TRUE"";""FALSE"""
+			displayFolder: 5. Day
+			lineageTag: 23ec8c3f-5243-4f56-b9e3-1eea4e30e06c
+			summarizeBy: none
+			sourceColumn: Working Day
+
+			changedProperty = IsHidden
+
+			annotation SummarizationSetBy = Automatic
+
+		/// Accumulated work day no from first date in calendar
+		column 'Working Day Number'
+			dataType: int64
+			isHidden
+			formatString: 0
+			displayFolder: 5. Day
+			lineageTag: 6c07b425-553e-4e70-beac-85d20ad7197b
+			summarizeBy: none
+			sourceColumn: Working Day Number
+
+			changedProperty = IsHidden
+
+			annotation SummarizationSetBy = Automatic
+
+		column 'Year Month Slicer'
+			dataType: string
+			displayFolder: 3. Month
+			lineageTag: df3a92ea-761c-4ca8-a030-8037352747c8
+			summarizeBy: none
+			sourceColumn: Year Month Slicer
+			sortByColumn: 'Year Month Number'
+
+			annotation SummarizationSetBy = Automatic
+
+		column is_History
+			dataType: boolean
+			formatString: """TRUE"";""TRUE"";""FALSE"""
+			displayFolder: 6. Boolean
+			lineageTag: 4c0c6481-9c34-43f9-901f-cd1a2697df68
+			summarizeBy: none
+			sourceColumn: is_History
+
+			annotation SummarizationSetBy = Automatic
+
+		hierarchy Year-Month
+			displayFolder: 7. Hierarchy
+			lineageTag: b2054b6b-99b2-426f-897d-9a974ee28133
+
+			level Year
+				lineageTag: 4aabe7eb-b152-4a8d-a36b-74cbd95792ac
+				column: Year
+
+			level Month
+				lineageTag: 27ec9679-80ce-4f67-bf86-903c79fedcf5
+				column: Month
+
+			level Date
+				lineageTag: faa78ebf-9e02-44ae-9a5b-d4d8517ffb44
+				column: Date
+
+		hierarchy Year-Quarter-Month
+			displayFolder: 7. Hierarchy
+			lineageTag: fab3b800-cf53-4e10-9027-d4d2ebd9a538
+
+			level Year
+				lineageTag: 6b33b772-a192-4a59-b4a4-dd2eaed85415
+				column: Year
+
+			level Quarter
+				lineageTag: 5f5ee083-8f15-447e-ad54-8ea0e3045c09
+				column: Quarter
+
+			level Month
+				lineageTag: 2bda2976-1e68-4eaf-a3ab-55c34b163de3
+				column: Month
+
+			level Date
+				lineageTag: 6cb36fe8-4022-4c71-8e01-5a43be4e8a2b
+				column: Date
+
+		partition Disconnected_Calendar = m
+			mode: import
+			source =
+					let
+					    Source = #"Date"
+					in
+					    Source
+
+		annotation TabularEditor_TableGroup = Dim Calendar
+
+		annotation PBI_NavigationStepName = Navigation
+
+		annotation PBI_ResultType = Table
+

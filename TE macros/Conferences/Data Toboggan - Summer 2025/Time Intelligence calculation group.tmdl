@@ -1,0 +1,581 @@
+createOrReplace
+
+	/// Calculation group for dynamic time intelligence.
+	table 'Time Intelligence'
+		lineageTag: 9d78a5a1-5c0d-4b5d-8c93-42d75323ca58
+
+		calculationGroup
+
+			/// Accumulated Month to date, hiding future dates after column: 'Calendar'[is_History] = TRUE
+			calculationItem MTD = ```
+					// https://www.sqlbi.com/articles/hiding-future-dates-for-calculations-in-dax/
+					VAR _CurrentDates = 
+					    CALCULATETABLE(
+					        VALUES('Calendar'[Date]),
+					        'Calendar'[is_History] = TRUE
+					    )
+					VAR _Result =
+					    CALCULATE (
+					        SELECTEDMEASURE (),
+					        DATESMTD (_CurrentDates)
+					    )
+					RETURN _Result
+					```
+
+				formatStringDefinition = ```
+						
+						    VAR MeasureInput = SELECTEDMEASURENAME()
+						    RETURN SWITCH(
+						        TRUE(),
+						        CONTAINSSTRING(UPPER(MeasureInput), "DATE"), "",
+						        CONTAINSSTRING(MeasureInput, "%"), "0%",
+						      //  MeasureInput = "Margin %", "0%",
+						        "#,0"
+						    )
+						```
+
+			/// Accumulated Month to date last year, hiding future dates after column: 'Calendar'[is_History] = TRUE
+			calculationItem 'MTD LY' = ```
+					// https://www.sqlbi.com/articles/hiding-future-dates-for-calculations-in-dax/
+					VAR _CurrentDates = 
+					    CALCULATETABLE(
+					        VALUES('Calendar'[Date]),
+					        'Calendar'[is_History] = TRUE
+					    )
+					VAR _Result =
+					    CALCULATE(
+					        SELECTEDMEASURE(),
+					        DATESMTD(
+					            SAMEPERIODLASTYEAR(_CurrentDates)
+					        )
+					    )
+					RETURN _Result
+					```
+
+				formatStringDefinition = ```
+						
+						    VAR MeasureInput = SELECTEDMEASURENAME()
+						    RETURN SWITCH(
+						        TRUE(),
+						        CONTAINSSTRING(UPPER(MeasureInput), "DATE"), "",
+						        CONTAINSSTRING(MeasureInput, "%"), "0%",
+						      //  MeasureInput = "Margin %", "0%",
+						        "#,0"
+						    )
+						```
+
+			/// MOMTD = Month over Month to date: Month-to-Date Deviation, this year and last year accumulated, hiding future dates after column: 'Calendar'[is_History] = TRUE
+			calculationItem MOMTD = ```
+					// https://www.sqlbi.com/articles/hiding-future-dates-for-calculations-in-dax/
+					VAR _CurrentDates = 
+					    CALCULATETABLE(
+					        VALUES('Calendar'[Date]),
+					        'Calendar'[is_History] = TRUE
+					    )
+					VAR _CurrentMonth =
+					    CALCULATE (
+					        SELECTEDMEASURE (),
+					        DATESMTD (_CurrentDates)
+					    )
+					VAR _PreviousMonth =
+					    CALCULATE(
+					        SELECTEDMEASURE(),
+					        DATESMTD(
+					            SAMEPERIODLASTYEAR(_CurrentDates)
+					        )
+					    )
+					RETURN _CurrentMonth - _PreviousMonth
+					```
+
+				formatStringDefinition = ```
+						
+						    VAR MeasureInput = SELECTEDMEASURENAME()
+						    RETURN SWITCH(
+						        TRUE(),
+						        CONTAINSSTRING(UPPER(MeasureInput), "DATE"), "",
+						        CONTAINSSTRING(MeasureInput, "%"), "0%",
+						      //  MeasureInput = "Margin %", "0%",
+						        "#,0"
+						    )
+						```
+
+			/// MOMTD = Month over Month to date %: % change this year compared to last year accumulated, hiding future dates after column: 'Calendar'[is_History] = TRUE
+			calculationItem 'MOMTD %' = ```
+					// https://www.sqlbi.com/articles/hiding-future-dates-for-calculations-in-dax/
+					VAR _CurrentDates = 
+					    CALCULATETABLE(
+					        VALUES('Calendar'[Date]),
+					        'Calendar'[is_History] = TRUE
+					    )
+					VAR _CurrentMonth =
+					    CALCULATE (
+					        SELECTEDMEASURE (),
+					        DATESMTD (_CurrentDates)
+					    )
+					VAR _PreviousMonth =
+					    CALCULATE(
+					        SELECTEDMEASURE(),
+					        DATESMTD(
+					            SAMEPERIODLASTYEAR(_CurrentDates)
+					        )
+					    )
+					VAR _DeltaMonth = _CurrentMonth - _PreviousMonth
+					RETURN DIVIDE(_DeltaMonth, _PreviousMonth)
+					```
+
+				formatStringDefinition = "0%"
+
+			/// Accumulated Month to date previous Month, hiding future dates after column: 'Calendar'[is_History] = TRUE
+			calculationItem 'MTD PM' = ```
+					// https://www.sqlbi.com/articles/hiding-future-dates-for-calculations-in-dax/
+					VAR _CurrentDates = 
+					    CALCULATETABLE(
+					        VALUES('Calendar'[Date]),
+					        'Calendar'[is_History] = TRUE
+					    )
+					VAR _Result =
+					    CALCULATE(
+					        SELECTEDMEASURE(),
+					        DATESMTD(
+					            DATEADD( _CurrentDates,-1,MONTH )
+					        )
+					    )
+					RETURN _Result
+					```
+
+				formatStringDefinition = ```
+						
+						    VAR MeasureInput = SELECTEDMEASURENAME()
+						    RETURN SWITCH(
+						        TRUE(),
+						        CONTAINSSTRING(UPPER(MeasureInput), "DATE"), "",
+						        CONTAINSSTRING(MeasureInput, "%"), "0%",
+						      //  MeasureInput = "Margin %", "0%",
+						        "#,0"
+						    )
+						```
+
+			/// Accumulated Month to date previous Quarter, hiding future dates after column: 'Calendar'[is_History] = TRUE
+			calculationItem 'MTD PQ' = ```
+					// https://www.sqlbi.com/articles/hiding-future-dates-for-calculations-in-dax/
+					VAR _CurrentDates = 
+					    CALCULATETABLE(
+					        VALUES('Calendar'[Date]),
+					        'Calendar'[is_History] = TRUE
+					    )
+					VAR _Result =
+					    CALCULATE(
+					        SELECTEDMEASURE(),
+					        DATESMTD(
+					            DATEADD( _CurrentDates,-3,MONTH )
+					        )
+					    )
+					RETURN _Result
+					```
+
+				formatStringDefinition = ```
+						
+						    VAR MeasureInput = SELECTEDMEASURENAME()
+						    RETURN SWITCH(
+						        TRUE(),
+						        CONTAINSSTRING(UPPER(MeasureInput), "DATE"), "",
+						        CONTAINSSTRING(MeasureInput, "%"), "0%",
+						      //  MeasureInput = "Margin %", "0%",
+						        "#,0"
+						    )
+						```
+
+			/// MTD C = Month to date Complete: accumulated, without hiding of future dates
+			calculationItem 'MTD C' =
+					CALCULATE (
+					    SELECTEDMEASURE (),
+					    DATESMTD ('Calendar'[Date])
+					)
+
+				formatStringDefinition = ```
+						
+						    VAR MeasureInput = SELECTEDMEASURENAME()
+						    RETURN SWITCH(
+						        TRUE(),
+						        CONTAINSSTRING(UPPER(MeasureInput), "DATE"), "",
+						        CONTAINSSTRING(MeasureInput, "%"), "0%",
+						      //  MeasureInput = "Margin %", "0%",
+						        "#,0"
+						    )
+						```
+
+			/// MTD C = Month to date Complete: Last Month last year accumulated, without hiding future dates
+			calculationItem 'MTD LY C' =
+					CALCULATE(
+					    SELECTEDMEASURE(),
+					    DATESMTD(
+					        SAMEPERIODLASTYEAR('Calendar'[Date])
+					    )
+					)
+
+				formatStringDefinition = ```
+						
+						    VAR MeasureInput = SELECTEDMEASURENAME()
+						    RETURN SWITCH(
+						        TRUE(),
+						        CONTAINSSTRING(UPPER(MeasureInput), "DATE"), "",
+						        CONTAINSSTRING(MeasureInput, "%"), "0%",
+						      //  MeasureInput = "Margin %", "0%",
+						        "#,0"
+						    )
+						```
+
+			/// MTD PM C = Month to date, Previous month, Complete: Last Month previous month accumulated, without hiding future dates
+			calculationItem 'MTD PM C' =
+					CALCULATE(
+					    SELECTEDMEASURE(),
+					    DATESMTD(
+					        PREVIOUSMONTH('Calendar'[Date])
+					    )
+					)
+
+				formatStringDefinition = ```
+						
+						    VAR MeasureInput = SELECTEDMEASURENAME()
+						    RETURN SWITCH(
+						        TRUE(),
+						        CONTAINSSTRING(UPPER(MeasureInput), "DATE"), "",
+						        CONTAINSSTRING(MeasureInput, "%"), "0%",
+						      //  MeasureInput = "Margin %", "0%",
+						        "#,0"
+						    )
+						```
+
+			/// Accumulated year to date, hiding future dates after column: 'Calendar'[is_History] = TRUE
+			calculationItem YTD = ```
+					// https://www.sqlbi.com/articles/hiding-future-dates-for-calculations-in-dax/
+					VAR _CurrentDates = 
+					    CALCULATETABLE(
+					        VALUES('Calendar'[Date]),
+					        'Calendar'[is_History] = TRUE
+					    )
+					VAR _Result =
+					    CALCULATE (
+					        SELECTEDMEASURE (),
+					        DATESYTD (_CurrentDates)
+					    )
+					RETURN _Result
+					```
+
+				formatStringDefinition = ```
+						
+						    VAR MeasureInput = SELECTEDMEASURENAME()
+						    RETURN SWITCH(
+						        TRUE(),
+						        CONTAINSSTRING(UPPER(MeasureInput), "DATE"), "",
+						        CONTAINSSTRING(MeasureInput, "%"), "0%",
+						      //  MeasureInput = "Margin %", "0%",
+						        "#,0"
+						    )
+						```
+
+			/// Accumulated year to date last year, hiding future dates after column: 'Calendar'[is_History] = TRUE
+			calculationItem LYTD = ```
+					// https://www.sqlbi.com/articles/hiding-future-dates-for-calculations-in-dax/
+					VAR _CurrentDates = 
+					    CALCULATETABLE(
+					        VALUES('Calendar'[Date]),
+					        'Calendar'[is_History] = TRUE
+					    )
+					VAR _Result =
+					    CALCULATE(
+					        SELECTEDMEASURE(),
+					        DATESYTD(
+					            SAMEPERIODLASTYEAR(_CurrentDates)
+					        )
+					    )
+					RETURN _Result
+					```
+
+				formatStringDefinition = ```
+						
+						    VAR MeasureInput = SELECTEDMEASURENAME()
+						    RETURN SWITCH(
+						        TRUE(),
+						        CONTAINSSTRING(UPPER(MeasureInput), "DATE"), "",
+						        CONTAINSSTRING(MeasureInput, "%"), "0%",
+						      //  MeasureInput = "Margin %", "0%",
+						        "#,0"
+						    )
+						```
+
+			/// YOYTD = Year over year to date: Year-to-Date Deviation, this year and last year accumulated, hiding future dates after column: 'Calendar'[is_History] = TRUE
+			calculationItem YOYTD = ```
+					// https://www.sqlbi.com/articles/hiding-future-dates-for-calculations-in-dax/
+					VAR _CurrentDates = 
+					    CALCULATETABLE(
+					        VALUES('Calendar'[Date]),
+					        'Calendar'[is_History] = TRUE
+					    )
+					VAR _CurrentYear =
+					    CALCULATE (
+					        SELECTEDMEASURE (),
+					        DATESYTD (_CurrentDates)
+					    )
+					VAR _PreviousYear =
+					    CALCULATE(
+					        SELECTEDMEASURE(),
+					        DATESYTD(
+					            SAMEPERIODLASTYEAR(_CurrentDates)
+					        )
+					    )
+					RETURN _CurrentYear - _PreviousYear
+					```
+
+				formatStringDefinition = ```
+						
+						    VAR MeasureInput = SELECTEDMEASURENAME()
+						    RETURN SWITCH(
+						        TRUE(),
+						        CONTAINSSTRING(UPPER(MeasureInput), "DATE"), "",
+						        CONTAINSSTRING(MeasureInput, "%"), "0%",
+						      //  MeasureInput = "Margin %", "0%",
+						        "#,0"
+						    )
+						```
+
+			/// YOYTD = Year over year to date: Year-to-Date Index, % change this year compared to last year accumulated, hiding future dates after column: 'Calendar'[is_History] = TRUE
+			calculationItem 'YOYTD %' = ```
+					// https://www.sqlbi.com/articles/hiding-future-dates-for-calculations-in-dax/
+					VAR _CurrentDates = 
+					    CALCULATETABLE(
+					        VALUES('Calendar'[Date]),
+					        'Calendar'[is_History] = TRUE
+					    )
+					VAR _CurrentYear =
+					    CALCULATE (
+					        SELECTEDMEASURE (),
+					        DATESYTD (_CurrentDates)
+					    )
+					VAR _PreviousYear =
+					    CALCULATE(
+					        SELECTEDMEASURE(),
+					        DATESYTD(
+					            SAMEPERIODLASTYEAR(_CurrentDates)
+					        )
+					    )
+					VAR _DeltaYear = _CurrentYear - _PreviousYear
+					RETURN DIVIDE(_DeltaYear, _PreviousYear)
+					```
+
+				formatStringDefinition = "0%"
+
+			/// YTD C = Year to date Complete: Year to date accumulated, without hiding future dates
+			calculationItem 'YTD C' =
+					CALCULATE (
+					    SELECTEDMEASURE (),
+					    DATESYTD ('Calendar'[Date])
+					)
+
+				formatStringDefinition = ```
+						
+						    VAR MeasureInput = SELECTEDMEASURENAME()
+						    RETURN SWITCH(
+						        TRUE(),
+						        CONTAINSSTRING(UPPER(MeasureInput), "DATE"), "",
+						        CONTAINSSTRING(MeasureInput, "%"), "0%",
+						      //  MeasureInput = "Margin %", "0%",
+						        "#,0"
+						    )
+						```
+
+			/// LYTD C = Last year to date Complete: Last Year accumulated, without hiding future dates
+			calculationItem 'LYTD C' =
+					CALCULATE(
+					    SELECTEDMEASURE(),
+					    DATESYTD(
+					        SAMEPERIODLASTYEAR('Calendar'[Date])
+					    )
+					)
+
+				formatStringDefinition = ```
+						
+						    VAR MeasureInput = SELECTEDMEASURENAME()
+						    RETURN SWITCH(
+						        TRUE(),
+						        CONTAINSSTRING(UPPER(MeasureInput), "DATE"), "",
+						        CONTAINSSTRING(MeasureInput, "%"), "0%",
+						      //  MeasureInput = "Margin %", "0%",
+						        "#,0"
+						    )
+						```
+
+			/// Rolling 12 months, hiding future dates after column: 'Calendar'[is_History] = TRUE
+			calculationItem 'Rolling 12M' = ```
+					// Reference: https://www.sqlbi.com/articles/rolling-12-months-average-in-dax/
+					VAR _NumOfMonths = 12
+					VAR _ReferenceDate = CALCULATE(
+					    MAX('Calendar'[Date]),
+					    CALCULATETABLE(
+					        VALUES('Calendar'[Date]),
+					        'Calendar'[is_History] = TRUE
+					    )
+					)
+					VAR _PreviousDates =
+					    DATESINPERIOD (
+					        'Calendar'[Date],
+					        _ReferenceDate,
+					        -_NumOfMonths,
+					        MONTH
+					    )
+					VAR _Result =
+					    CALCULATE (
+					        SELECTEDMEASURE(),
+					        _PreviousDates
+					    )
+					VAR _firstDateInPeriod = MINX ( _PreviousDates, 'Calendar'[Date] )
+					RETURN 
+					    IF ( _firstDateInPeriod <= _ReferenceDate, _Result )
+					```
+
+				formatStringDefinition = ```
+						
+						    VAR MeasureInput = SELECTEDMEASURENAME()
+						    RETURN SWITCH(
+						        TRUE(),
+						        CONTAINSSTRING(UPPER(MeasureInput), "DATE"), "",
+						        CONTAINSSTRING(MeasureInput, "%"), "0%",
+						      //  MeasureInput = "Margin %", "0%",
+						        "#,0"
+						    )
+						```
+
+			/// Rolling 12 months last year, hiding future dates after column: 'Calendar'[is_History] = TRUE
+			calculationItem 'Rolling 12M LY' = ```
+					// Reference: https://www.sqlbi.com/articles/rolling-12-months-average-in-dax/
+					VAR _NumOfMonths = 12
+					VAR _ReferenceDate = CALCULATE(
+					    MAX('Calendar'[Date]),
+					    CALCULATETABLE(
+					        VALUES('Calendar'[Date]),
+					        'Calendar'[is_History] = TRUE
+					    )
+					)
+					VAR _PreviousDates =
+					    DATESINPERIOD (
+					        'Calendar'[Date],
+					        _ReferenceDate,
+					        -_NumOfMonths,
+					        MONTH
+					    )
+					VAR _Result =
+					    CALCULATE (
+					        SELECTEDMEASURE(),
+					        SAMEPERIODLASTYEAR(_PreviousDates)
+					    )
+					VAR _firstDateInPeriod = MINX ( _PreviousDates, 'Calendar'[Date] )
+					RETURN 
+					    IF ( _firstDateInPeriod <= _ReferenceDate, _Result )
+					```
+
+				formatStringDefinition = ```
+						
+						    VAR MeasureInput = SELECTEDMEASURENAME()
+						    RETURN SWITCH(
+						        TRUE(),
+						        CONTAINSSTRING(UPPER(MeasureInput), "DATE"), "",
+						        CONTAINSSTRING(MeasureInput, "%"), "0%",
+						      //  MeasureInput = "Margin %", "0%",
+						        "#,0"
+						    )
+						```
+
+			/// Rolling 12 months Deviation, this year and last year, hiding future dates after column: 'Calendar'[is_History] = TRUE
+			calculationItem 'Rolling 12M Dev' = ```
+					// Reference: https://www.sqlbi.com/articles/rolling-12-months-average-in-dax/
+					VAR _NumOfMonths = 12
+					VAR _ReferenceDate = CALCULATE(
+					    MAX('Calendar'[Date]),
+					    CALCULATETABLE(
+					        VALUES('Calendar'[Date]),
+					        'Calendar'[is_History] = TRUE
+					    )
+					)
+					VAR _PreviousDates =
+					    DATESINPERIOD (
+					        'Calendar'[Date],
+					        _ReferenceDate,
+					        -_NumOfMonths,
+					        MONTH
+					    )
+					VAR _CurrentResult =
+					    CALCULATE (
+					        SELECTEDMEASURE(),
+					        _PreviousDates
+					    )
+					VAR _PreviousResult =
+					    CALCULATE (
+					        SELECTEDMEASURE(),
+					        SAMEPERIODLASTYEAR(_PreviousDates)
+					    )
+					VAR _firstDateInPeriod = MINX ( _PreviousDates, 'Calendar'[Date] )
+					RETURN 
+					    IF ( _firstDateInPeriod <= _ReferenceDate, _CurrentResult - _PreviousResult )
+					```
+
+				formatStringDefinition = ```
+						
+						    VAR MeasureInput = SELECTEDMEASURENAME()
+						    RETURN SWITCH(
+						        TRUE(),
+						        CONTAINSSTRING(UPPER(MeasureInput), "DATE"), "",
+						        CONTAINSSTRING(MeasureInput, "%"), "0%",
+						      //  MeasureInput = "Margin %", "0%",
+						        "#,0"
+						    )
+						```
+
+			/// Rolling 12 months, % change this year and last year (idx), hiding future dates after column: 'Calendar'[is_History] = TRUE
+			calculationItem 'Rolling 12M idx' = ```
+					// Reference: https://www.sqlbi.com/articles/rolling-12-months-average-in-dax/
+					VAR _NumOfMonths = 12
+					VAR _ReferenceDate = CALCULATE(
+					    MAX('Calendar'[Date]),
+					    CALCULATETABLE(
+					        VALUES('Calendar'[Date]),
+					        'Calendar'[is_History] = TRUE
+					    )
+					)
+					VAR _PreviousDates =
+					    DATESINPERIOD (
+					        'Calendar'[Date],
+					        _ReferenceDate,
+					        -_NumOfMonths,
+					        MONTH
+					    )
+					VAR _CurrentResult =
+					    CALCULATE (
+					        SELECTEDMEASURE(),
+					        _PreviousDates
+					    )
+					VAR _PreviousResult =
+					    CALCULATE (
+					        SELECTEDMEASURE(),
+					        SAMEPERIODLASTYEAR(_PreviousDates)
+					    )
+					VAR _DeviationResult = _CurrentResult - _PreviousResult
+					VAR _firstDateInPeriod = MINX ( _PreviousDates, 'Calendar'[Date] )
+					RETURN 
+					    IF ( _firstDateInPeriod <= _ReferenceDate, DIVIDE( _DeviationResult, _PreviousResult ) )
+					```
+
+				formatStringDefinition = "0%"
+
+		/// The selected time intelligence
+		column 'Time Calculation'
+			dataType: string
+			lineageTag: e878eebb-add2-4f63-8d9c-bc6678d3bd9b
+			sourceColumn: Name
+			sortByColumn: Ordinal
+
+		column Ordinal
+			dataType: int64
+			isHidden
+			lineageTag: 97fd7cbd-d271-418b-94f5-15e6af9a5976
+			sourceColumn: Ordinal
+

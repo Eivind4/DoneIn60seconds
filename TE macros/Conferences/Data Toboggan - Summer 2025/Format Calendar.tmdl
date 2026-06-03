@@ -1,0 +1,288 @@
+createOrReplace
+
+	/// Date-table
+	table Date
+		lineageTag: d4b5397a-ecdc-48c2-986a-72bfe85f61ab
+		dataCategory: Time
+
+		/// The last date selected from a slicer from calendar. Setting today() if last date is after todays' date.
+		measure 'Max Calendar date' = MIN(MAX('Date'[Date]), TODAY())
+			formatString: dd-MM-yyyy
+			displayFolder: 0. Date Control measures
+			lineageTag: 84fbdd08-ff14-497b-ae5e-6f47dec5edd8
+
+		/// The last fact table date.
+		measure 'Last fact table date' =
+				CALCULATE (
+				    MAX('Sales'[Order Date]),
+				    ALL ('Sales')
+				)
+			formatString: dd-MM-yyyy
+			displayFolder: 0. Date Control measures
+			lineageTag: b928af9b-ba66-4da4-b544-b2fe1e6a7c7c
+
+		/// YYYY
+		column Year
+			dataType: int64
+			formatString: 0
+			displayFolder: 1. Year
+			lineageTag: 1a98bce0-40cd-47b6-a12a-ec7a9b051205
+			summarizeBy: none
+			sourceColumn: Year
+
+			annotation SummarizationSetBy = Automatic
+
+		/// I.e. Q1
+		column Quarter
+			dataType: string
+			displayFolder: 2. Quarter
+			lineageTag: 551e6043-5576-40d6-8343-02420471c5ca
+			summarizeBy: none
+			sourceColumn: Quarter
+
+			annotation SummarizationSetBy = Automatic
+
+		/// 1 if today or earlier
+		column is_History
+			dataType: boolean
+			formatString: """TRUE"";""TRUE"";""FALSE"""
+			displayFolder: 6. Boolean
+			lineageTag: d3f2829d-ffe6-47a8-b11a-476ef3b4eba8
+			summarizeBy: none
+			sourceColumn: is_History
+
+			annotation SummarizationSetBy = Automatic
+
+		/// YYYY-MM-DD
+		column Date
+			dataType: dateTime
+			isKey
+			formatString: mm/dd/yyyy
+			displayFolder: 4. Date
+			lineageTag: a0b7ae93-baf7-4cb4-8105-d00fabfe6428
+			summarizeBy: none
+			sourceColumn: Date
+
+			annotation SummarizationSetBy = Automatic
+
+			annotation UnderlyingDateTimeDataType = Date
+
+		/// Q1 2024
+		column 'Year Quarter'
+			dataType: string
+			isHidden
+			displayFolder: 2. Quarter
+			lineageTag: 8a1105c6-f8fd-43dd-a74c-b6c547c4da0f
+			summarizeBy: none
+			sourceColumn: Year Quarter
+			sortByColumn: 'Year Quarter Number'
+
+			changedProperty = IsHidden
+
+			annotation SummarizationSetBy = Automatic
+
+		/// Used for sorting Year Quarter
+		column 'Year Quarter Number'
+			dataType: int64
+			isHidden
+			formatString: 0
+			displayFolder: 2. Quarter
+			lineageTag: ef024846-402a-4710-8385-2e4338585348
+			summarizeBy: none
+			sourceColumn: Year Quarter Number
+
+			annotation SummarizationSetBy = Automatic
+
+		/// I.e. January 2024
+		column 'Year Month'
+			dataType: string
+			displayFolder: 3. Month
+			lineageTag: 3c83d682-3878-4664-9726-fbadf17423ed
+			summarizeBy: none
+			sourceColumn: Year Month
+			sortByColumn: 'Year Month Number'
+
+			annotation SummarizationSetBy = Automatic
+
+		/// I.e. Jan 2024
+		column 'Year Month Short'
+			dataType: string
+			displayFolder: 3. Month
+			lineageTag: 77699cf5-6141-4cd3-8727-c64164b8cbe0
+			summarizeBy: none
+			sourceColumn: Year Month Short
+			sortByColumn: 'Year Month Number'
+
+			annotation SummarizationSetBy = Automatic
+
+		/// Used for sorting Year Month
+		column 'Year Month Number'
+			dataType: int64
+			isHidden
+			formatString: 0
+			displayFolder: 3. Month
+			lineageTag: bc86efe2-b25e-4057-812e-ace3384a07af
+			summarizeBy: none
+			sourceColumn: Year Month Number
+
+			annotation SummarizationSetBy = Automatic
+
+		/// I.e. January
+		column Month
+			dataType: string
+			displayFolder: 3. Month
+			lineageTag: 45515a70-f04b-4ca7-b832-ddba040e00db
+			summarizeBy: none
+			sourceColumn: Month
+			sortByColumn: 'Month Number'
+
+			annotation SummarizationSetBy = Automatic
+
+		/// I.e. Jan
+		column 'Month Short'
+			dataType: string
+			displayFolder: 3. Month
+			lineageTag: 117cd883-3848-4d92-b05b-0bdec3fb99bd
+			summarizeBy: none
+			sourceColumn: Month Short
+			sortByColumn: 'Month Number'
+
+			annotation SummarizationSetBy = Automatic
+
+		/// I.e. 1 (=January)
+		column 'Month Number'
+			dataType: int64
+			formatString: 0
+			displayFolder: 3. Month
+			lineageTag: 24f7da4e-ef2c-4b0e-800f-04a0717c8ae2
+			summarizeBy: none
+			sourceColumn: Month Number
+
+			annotation SummarizationSetBy = Automatic
+
+		/// I.e. Monday
+		column 'Day of Week'
+			dataType: string
+			displayFolder: 5. Day
+			lineageTag: 03495197-cd4c-4e7d-88af-8d107a4c6986
+			summarizeBy: none
+			sourceColumn: Day of Week
+			sortByColumn: 'Day of Week Number'
+
+			annotation SummarizationSetBy = Automatic
+
+		/// I.e. Mon
+		column 'Day of Week Short'
+			dataType: string
+			displayFolder: 5. Day
+			lineageTag: 71d2cf7e-9bdf-4635-b149-739deedf7f89
+			summarizeBy: none
+			sourceColumn: Day of Week Short
+			sortByColumn: 'Day of Week Number'
+
+			annotation SummarizationSetBy = Automatic
+
+		/// 0=Monday to 6=Sunday
+		column 'Day of Week Number'
+			dataType: int64
+			isHidden
+			formatString: 0
+			displayFolder: 5. Day
+			lineageTag: 607fb59b-4fb2-4d43-9ed0-55ac8b2d6a1e
+			summarizeBy: none
+			sourceColumn: Day of Week Number
+
+			changedProperty = IsHidden
+
+			annotation SummarizationSetBy = Automatic
+
+		/// TRUE/FALSE
+		column 'Working Day'
+			dataType: boolean
+			isHidden
+			formatString: """TRUE"";""TRUE"";""FALSE"""
+			displayFolder: 5. Day
+			lineageTag: df0f8904-f559-4c5b-aae8-70618315bbd9
+			summarizeBy: none
+			sourceColumn: Working Day
+
+			changedProperty = IsHidden
+
+			annotation SummarizationSetBy = Automatic
+
+		/// Accumulated work day no from first date in calendar
+		column 'Working Day Number'
+			dataType: int64
+			isHidden
+			formatString: 0
+			displayFolder: 5. Day
+			lineageTag: 5e4ba9a4-846b-4335-8370-41640148f1f2
+			summarizeBy: none
+			sourceColumn: Working Day Number
+
+			changedProperty = IsHidden
+
+			annotation SummarizationSetBy = Automatic
+
+		column 'Year Month Slicer'
+			dataType: string
+			displayFolder: 3. Month
+			lineageTag: d3eb3a3a-d0a2-4809-91df-ef715f3cc6c8
+			summarizeBy: none
+			sourceColumn: Year Month Slicer
+			sortByColumn: 'Year Month Number'
+
+			annotation SummarizationSetBy = Automatic
+
+		hierarchy Year-Month
+			displayFolder: 7. Hierarchy
+			lineageTag: 15674335-bc4d-4e1a-8dea-e0ff57fd694b
+
+			level Year
+				lineageTag: 29aef9b8-f567-496a-be2e-d773e0916bdf
+				column: Year
+
+			level Month
+				lineageTag: 69d08409-66c6-45fe-84e6-f5f057aa1279
+				column: Month
+
+			level Date
+				lineageTag: 5652c8f9-a407-45a3-844f-858cabb15d87
+				column: Date
+
+		hierarchy Year-Quarter-Month
+			displayFolder: 7. Hierarchy
+			lineageTag: 0a97cea8-af28-4474-86f8-d21c1f8a8571
+
+			level Year
+				lineageTag: 10533566-2d8b-4ad0-957c-43aa4db41aea
+				column: Year
+
+			level Quarter
+				lineageTag: ec5fd88a-92c7-4de2-bd0d-52b6da980bf7
+				column: Quarter
+
+			level Month
+				lineageTag: df0faf26-58ea-4fa6-aa2c-47248fa54bf6
+				column: Month
+
+			level Date
+				lineageTag: 3b4d928d-dca2-4eb8-84d3-750feffe77ce
+				column: Date
+
+		partition Dates = m
+			mode: import
+			source =
+					let
+					    Source = Sql.Databases("localhost"),
+					    #"Contoso V2 1M" = Source{[Name="Contoso V2 1M"]}[Data],
+					    dbo_DateTable_Contoso = #"Contoso V2 1M"{[Schema="dbo",Item="DateContoso"]}[Data]
+					in
+					    dbo_DateTable_Contoso
+
+		annotation TabularEditor_TableGroup = Dim Calendar
+
+		annotation PBI_NavigationStepName = Navigation
+
+		annotation PBI_ResultType = Table
+

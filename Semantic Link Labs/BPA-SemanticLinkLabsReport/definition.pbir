@@ -1,0 +1,9 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/item/report/definitionProperties/2.0.0/schema.json",
+  "version": "4.0",
+  "datasetReference": {
+    "byConnection": {
+      "connectionString": "Data Source=\"powerbi://api.powerbi.com/v1.0/myorg/Best Practice Analyzer\";initial catalog=MeasureOverview;access mode=readonly;integrated security=ClaimsToken;semanticmodelid=c9e1d553-8363-4cd7-ae53-add1a951166c"
+    }
+  }
+}
