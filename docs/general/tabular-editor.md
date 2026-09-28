@@ -6,19 +6,24 @@ video_seconds: 30
 # C# scripting in Tabular Editor
 
 Tabular Editor comes in a free version, Tabular Editor 2, and a licensed version, Tabular Editor 3.
-Both have the C# scripting functionality, and the challenges in this series can be solved with both tools.
-There are some differences, though:
+Both have C# scripting functionality. The challenges in this series can be solved in Tabular Editor 2 as well,
+but the scripts need to be adjusted to compile in Tabular Editor 2, unless a Tabular Editor 2 version is
+already included. The main differences:
 
-!!! todo "Your words, with suggestions from Claude to accept, rewrite or delete"
-    Your notes: responsive input boxes; can add the Roslyn compiler.
+| | Tabular Editor 2 | Tabular Editor 3 |
+|---|---|---|
+| License | Free, open source | Paid |
+| C# version | Older compiler by default. Newer syntax (e.g. string interpolation) needs the [Roslyn compiler](https://docs.tabulareditor.com/te2/Advanced-Scripting.html), set under File > Preferences. For advanced users. | Modern C# out of the box |
+| Script editor | Basic | Code completion, syntax highlighting, script recorder |
+| Saved scripts | Custom actions (`CustomActions.json`) | Macros (`MacroActions.json`), can be added to toolbars and menus |
+| Messages window | None. Errors show in pop-up dialogs, so use screenshots as input to AI. | Copy errors from the Messages window and give them as input to AI. |
 
-    | | Tabular Editor 2 | Tabular Editor 3 |
-    |---|---|---|
-    | License | Free, open source | Paid |
-    | C# version | Older compiler by default; newer syntax (e.g. string interpolation) needs the [Roslyn compiler](https://docs.tabulareditor.com/te2/Advanced-Scripting.html), set under File > Preferences. For advanced users. | Modern C# out of the box |
-    | Script editor | Basic | Code completion, syntax highlighting, script recorder |
-    | Saved scripts | Custom actions (`CustomActions.json`) | Macros (`MacroActions.json`), can be added to toolbars and menus |
-    | Output and errors | Pop-up dialogs | Messages window |
+!!! todo
+    Your note "responsive input boxes": add it as a row, or delete this box.
+
+!!! abstract "Summary"
+    From my experience, working with Tabular Editor 3 makes it easier and saves you time when creating scripts,
+    but you can make it work in Tabular Editor 2 as well.
 
 The scripts in this series are created for Tabular Editor 3, as it saves my (and your) valuable time.
 If you are limited to Tabular Editor 2, your AI agent can help you make a script compile and run in
@@ -38,8 +43,6 @@ improved with DAX UDF functionality. For this, I used the plugin skills from Dat
 
 ## A few things to help you
 
-- Tabular Editor 3 has a Messages window, where you can copy errors and give them as input to AI.
-  In Tabular Editor 2, you can use screenshots.
 - With the September 2026 release, you can access Tabular Editor through an MCP server from your favourite
   AI agent. I have not tested it for C# scripting at the time of writing.
 

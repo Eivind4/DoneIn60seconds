@@ -30,3 +30,19 @@
   -webkit-mask-image: var(--md-admonition-icon--note);
   mask-image: var(--md-admonition-icon--note);
 }
+
+/* Tagline after the site name in the header; hidden on narrow screens */
+.header-tagline {
+  font-size: 0.65rem;
+  opacity: 0.8;
+  margin-left: 0.4rem;
+}
+@media screen and (max-width: 60em) {
+  .header-tagline { display: none; }
+}
+
+/* Logo B is wider than it is tall */
+.md-header__button.md-logo img {
+  width: auto;
+  height: 1.8rem;
+}

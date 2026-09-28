@@ -11,8 +11,4 @@
     <line x1="18" y1="92" x2="18" y2="96"/><line x1="51" y1="92" x2="51" y2="96"/><line x1="84" y1="92" x2="84" y2="96"/><line x1="117" y1="92" x2="117" y2="96"/></g>
   <g font-family="Segoe UI, Arial, sans-serif" font-size="8" fill="#7A7774" text-anchor="middle">
     <text x="18" y="106">0</text><text x="51" y="106">20</text><text x="84" y="106">40</text><text x="115" y="106" font-weight="700" fill="#D49A06">60s</text></g>
-  <g transform="translate(112 4)"><line x1="0" y1="0" x2="0" y2="18" stroke="#7A7774" stroke-width="1.5"/>
-    <rect x="0" y="0" width="12" height="8" fill="#fff" stroke="#252423" stroke-width=".8"/>
-    <rect x="0" y="0" width="3" height="4" fill="#252423"/><rect x="6" y="0" width="3" height="4" fill="#252423"/>
-    <rect x="3" y="4" width="3" height="4" fill="#252423"/><rect x="9" y="4" width="3" height="4" fill="#252423"/></g>
 </svg>

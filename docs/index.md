@@ -13,20 +13,21 @@ hide:
 Development in Power BI can be time-intensive. The latest developments in AI can help, but:
 
 - AI is non-deterministic by default
-  ([A practical introduction to LLMs for data professionals](https://tabulareditor.com/blog/practical-introduction-to-llms-for-data-professionals)).
+  (Tabular Editor blog: [A practical introduction to LLMs for data professionals](https://tabulareditor.com/blog/practical-introduction-to-llms-for-data-professionals)).
 - With AI, you typically spend more time on planning and testing
-  ([How to get started with agentic development for business intelligence and analytics](https://tabulareditor.com/blog/how-to-get-started-with-agentic-development-for-business-intelligence)).
+  (Tabular Editor blog: [How to get started with agentic development for business intelligence and analytics](https://tabulareditor.com/blog/how-to-get-started-with-agentic-development-for-business-intelligence)).
 - There are more efficient options that do not require prompting at all. That is what this series is about.
 
 Tabular Editor is a tool for creating semantic models more efficiently and with better quality.
 It has many features that help you in your daily work with semantic models, but this series focuses on only one of them:
 
-- Using C# scripts for common challenges, to ensure a deterministic outcome.
+- Using C# scripts to solve common challenges.
 
-Or perhaps more precisely: using AI to create reusable C# scripts. AI is great at C# scripting; I am not.
-What you need is to know what is possible to solve, and a good understanding of the metadata.
-You gain that by using Tabular Editor or TMDL, where you can see the properties, including some that are
-hidden in the Power BI user interface.
+This series is not about how to create C# scripts. AI is great at C# scripting; I am not.
+But you get very far by understanding what you can solve, having a good understanding of the metadata,
+and testing the result. You gain the metadata understanding by using Tabular Editor or TMDL, where you can
+see the properties, including some that are hidden in the Power BI user interface.
+Once a script works, the output is the same every time: it is deterministic.
 
 The series does not explain general concepts, but links to articles where applicable. The goal of the series
 is not only to solve common challenges in Power BI, but to solve them within 60 seconds, in every model.

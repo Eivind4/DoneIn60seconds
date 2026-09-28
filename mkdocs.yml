@@ -11,7 +11,8 @@ hooks:
 
 theme:
   name: material
-  logo: assets/logo/logo-c-icon.svg
+  custom_dir: overrides
+  logo: assets/logo/logo-b-axis.svg
   favicon: assets/logo/logo-c-icon.svg
   palette:
     - media: "(prefers-color-scheme: light)"
@@ -36,6 +37,9 @@ theme:
     - content.action.edit
   icon:
     repo: fontawesome/brands/github
+
+extra:
+  tagline: Solving common Power BI challenges in less than 60 seconds
 
 extra_css:
   - stylesheets/extra.css
