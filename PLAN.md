@@ -40,11 +40,22 @@
 4. Record the clip, save it to `docs/assets/videos/`, and preview it locally.
 5. Set `publish:` and push.
 
+## ToDo
+
+- [ ] Video: how to add and save a script as a macro (Tabular Editor page)
+- [ ] Attach the Tabular Editor 2 skill and link it (Tabular Editor page)
+- [ ] Tabular Editor 2 vs 3: accept or rewrite the suggested comparison table
+- [ ] PBIR files: general info page
+- [ ] Semantic Link Labs: general info page
+- [ ] Best Practice Rules: automate fixes with fix scripts (Tabular Editor + Semantic Link Labs)
+- [ ] Logo: pick a sketch (`docs/logo-sketches.md`, preview at /logo-sketches/) and refine
+- [ ] Map one final macro per page as each page is written
+
 ## Content outline
 
 Each page is sketched as a draft with its macro linked. **Check the mapping marked ?**
 
-**General:** About · Tabular Editor · PBIR files · Theme file
+**General:** About · Tabular Editor · PBIR files · Theme file · Semantic Link Labs
 
 **Semantic model**
 
@@ -69,6 +80,8 @@ Each page is sketched as a draft with its macro linked. **Check the mapping mark
 | Set display name | 12 - Set display names for selected fields in PBIR |
 | Update display name | 13 - Batch rename existing display names in PBIR |
 | Detect unused objects | 16 - Classify model dependencies from PBIR ? |
+
+**Best Practice Rules:** Automate fixes with fix scripts (Tabular Editor and Semantic Link Labs)
 
 **Master model**
 

@@ -11,6 +11,8 @@ hooks:
 
 theme:
   name: material
+  logo: assets/logo/logo-c-icon.svg
+  favicon: assets/logo/logo-c-icon.svg
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
@@ -63,6 +65,7 @@ nav:
     - Tabular Editor: general/tabular-editor.md
     - PBIR files: general/pbir-files.md
     - Theme file: general/theme-file.md
+    - Semantic Link Labs: general/semantic-link-labs.md
   - Semantic model:
     - semantic-model/index.md
     - Create a calendar: semantic-model/create-calendar.md
@@ -81,6 +84,9 @@ nav:
     - Set display name: pbir/set-display-name.md
     - Update display name: pbir/update-display-name.md
     - Detect unused objects: pbir/detect-unused-objects.md
+  - Best Practice Rules:
+    - best-practice-rules/index.md
+    - Automate fixes with fix scripts: best-practice-rules/automate-fixes.md
   - Master model:
     - master-model/index.md
     - Create model from perspective: master-model/create-model-from-perspective.md
