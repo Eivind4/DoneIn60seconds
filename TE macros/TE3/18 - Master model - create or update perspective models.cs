@@ -4,22 +4,35 @@
 // Based on the idea of m-kovalsky/Tabular MasterModel.cs, rebuilt for TE3 and
 // PBIP: one master semantic model with perspectives -> one smaller semantic
 // model per perspective (e.g. for conversational BI / Copilot / data agents).
-// No report is created or copied.
+// The master can be a PBIP/TMDL folder or a PBIX open in Power BI Desktop
+// (or any connected model). Output is always PBIP format (TMDL).
 //
 // Run it with the MASTER model open in Tabular Editor 3. The master itself is
 // never changed.
 //
 // Workflow:
-//   1. Pick the output folder (the folder that holds the master
-//      .SemanticModel folder). The last used folder is remembered.
+//   1. Pick the output folder (last one remembered). Each perspective model
+//      gets its own project folder there:
+//        <Folder>\<Name>\<Name>.pbip, <Name>.SemanticModel\, <Name>.Report\
+//      Existing models are found in those subfolders and in the selected
+//      folder itself (where older versions of this macro created them).
+//      A PBIX cannot be written by any tool except Power BI Desktop, so a
+//      PBIX master also produces PBIP projects (File > Save as .pbix in
+//      Desktop if a PBIX is wanted).
 //   2. A grid lists every perspective. Tick the ones to process and edit the
-//      model name (default "<Perspective> <Master name>"). The action follows
-//      the name:
-//        Create  - no <Name>.SemanticModel folder exists yet
-//        Update  - the folder exists (models created by this macro are found
-//                  automatically, whatever their name)
-//   3. Create writes <Name>.SemanticModel\ with definition\ (TMDL),
-//      definition.pbism and .platform next to the master.
+//      model name (default "<Perspective> model"). Action per row:
+//        Create    - no <Name>.SemanticModel folder exists yet
+//        Update    - default when the folder exists: merge, never overwrite
+//                    (models created by this macro are found automatically,
+//                    whatever their name)
+//        Recreate  - only when chosen explicitly: overwrite the definition
+//                    (backup first; local changes are lost)
+//      Option: "Power BI Desktop project" also writes <Name>.pbip and a blank
+//      <Name>.Report (only if they do not exist), so the model can be opened
+//      in Power BI Desktop and published from there - no Git needed.
+//      Default on; untick for a semantic model folder only (TE / Fabric Git).
+//   3. Create writes <Name>\\<Name>.SemanticModel\ with definition\ (TMDL),
+//      definition.pbism and .platform.
 //   4. Update merges master changes into the existing model WITHOUT
 //      overwriting local work (three-way compare, see below).
 //
@@ -30,7 +43,10 @@
 //     tables and their key columns, columns used in RLS filters, and all
 //     columns of calculated tables / calculation groups.
 //   - Removes all perspectives, unused DAX UDFs, translations and role
-//     permissions for removed objects.
+//     permissions for removed objects (also on update).
+//   - PBI_RemovedChildren: remote tables dropped from a composite model are
+//     added to the source expression's list (so Desktop doesn't re-add them);
+//     model-level entries naming a dropped table are removed.
 //   - Applies the original MasterModel.cs annotations for the perspective
 //     ({P} = perspective name) and removes them from the output:
 //       {P}_Expression           measure: replace expression
@@ -65,9 +81,10 @@
 //
 // IMPORTANT:
 //   - The generated/updated models are written to disk; they are not opened.
-//     Open <Name>.SemanticModel\definition in Tabular Editor, or deploy /
-//     sync the folder with Fabric Git integration. Power BI Desktop needs a
-//     report (.pbip) to open a semantic model.
+//     Open <Name>.SemanticModel\definition in Tabular Editor, deploy / sync
+//     the folder with Fabric Git integration, or (with the Desktop project
+//     option) open <Name>.pbip in Power BI Desktop. A PBIP holds no data:
+//     refresh in Desktop (credentials may be asked) before publishing.
 //   - Linguistic schema / Copilot "Prep data for AI" settings are copied as-is
 //     and may mention removed objects - review them for the smaller model.
 // ============================================================================
@@ -267,6 +284,77 @@ bool IsAttached(TOM.MetadataObject obj, TOM.Model mdl)
     return false;
 }
 
+// References to objects that are no longer in the model (call after removing objects):
+// auto date/time variations, RLS table/column permissions and translations
+void RemoveDanglingReferences(TOM.Model mdl)
+{
+    foreach (var t in mdl.Tables)
+        foreach (var c in t.Columns)
+            foreach (var v in c.Variations.ToList())
+                if (v.Relationship == null || !IsAttached(v.Relationship, mdl)) c.Variations.Remove(v);
+    foreach (var role in mdl.Roles)
+        foreach (var tp in role.TablePermissions.ToList())
+        {
+            if (tp.Table == null || !IsAttached(tp.Table, mdl)) { role.TablePermissions.Remove(tp); continue; }
+            foreach (var cp in tp.ColumnPermissions.ToList())
+                if (cp.Column == null || !IsAttached(cp.Column, mdl)) tp.ColumnPermissions.Remove(cp);
+        }
+    foreach (var culture in mdl.Cultures)
+        foreach (var translation in culture.ObjectTranslations.ToList())
+            if (translation.Object == null || !IsAttached(translation.Object, mdl)) culture.ObjectTranslations.Remove(translation);
+}
+
+// PBI_RemovedChildren tells Power BI Desktop which source objects were removed on purpose, so a
+// schema sync doesn't bring them back (learn.microsoft.com: "Lineage tags for Power BI semantic models").
+// - Composite model on a Power BI / AS model: listed on the source expression. The remote tables this
+//   model drops are added, otherwise Desktop re-adds them. Existing entries are kept (they are by
+//   design objects that are not in the model).
+// - Import/DirectQuery: listed on the model, for removed source relationships. Entries naming a
+//   dropped table are removed - such a relationship can't come back without the table.
+const string AnnRemovedChildren = "PBI_RemovedChildren";
+void UpdateRemovedChildren(TOM.Model mdl, List<TOM.Table> removedTables, List<string> log)
+{
+    if (removedTables.Count == 0) return;
+    Func<string, JArray> parse = text =>
+    {
+        if (string.IsNullOrWhiteSpace(text)) return new JArray();
+        try { return JArray.Parse(text); } catch { return null; }
+    };
+
+    foreach (var t in removedTables)
+        foreach (var source in t.Partitions.Select(p => p.Source).OfType<TOM.EntityPartitionSource>())
+        {
+            var expr = source.ExpressionSource == null ? null : mdl.Expressions.Find(source.ExpressionSource.Name);
+            if (expr == null || expr.Expression == null || expr.Expression.IndexOf("AnalysisServices.Database", StringComparison.OrdinalIgnoreCase) < 0) continue;
+            var entries = parse(GetAnn(expr, AnnRemovedChildren));
+            if (entries == null) { log.Add(AnnRemovedChildren + " on '" + expr.Name + "' is not a JSON array - left unchanged."); continue; }
+            var tag = string.IsNullOrEmpty(t.SourceLineageTag) ? null : t.SourceLineageTag;
+            var name = tag == null ? (string.IsNullOrEmpty(source.EntityName) ? t.Name : source.EntityName) : null;
+            if (entries.Any(e =>
+            {
+                var o = e.SelectToken("remoteItemId.analysisServicesObject");
+                return o != null && (tag != null ? (string)o["sourceLineageTag"] == tag : SameName((string)o["sourceName"], name));
+            })) continue;
+            entries.Add(new JObject(
+                new JProperty("remoteItemId", new JObject(new JProperty("analysisServicesObject", new JObject(
+                    new JProperty("sourceName", name == null ? JValue.CreateNull() : new JValue(name)),
+                    new JProperty("sourceLineageTag", tag == null ? JValue.CreateNull() : new JValue(tag)))))),
+                new JProperty("objectType", "Table")));
+            SetAnn(expr, AnnRemovedChildren, entries.ToString(Newtonsoft.Json.Formatting.None));
+        }
+
+    var modelEntries = parse(GetAnn(mdl, AnnRemovedChildren));
+    if (modelEntries == null) { log.Add(AnnRemovedChildren + " on the model is not a JSON array - left unchanged."); return; }
+    if (modelEntries.Count == 0) return;
+    var dropped = new HashSet<string>(removedTables.SelectMany(t => new[] { t.Name, t.LineageTag, t.SourceLineageTag })
+        .Where(s => !string.IsNullOrEmpty(s) && mdl.Tables.Find(s) == null), StringComparer.OrdinalIgnoreCase);
+    var keepEntries = new JArray(modelEntries.Where(e => !(e is JContainer) || !((JContainer)e).Descendants().OfType<JValue>()
+        .Any(v => v.Type == JTokenType.String && dropped.Contains((string)v))));
+    if (keepEntries.Count == modelEntries.Count) return;
+    if (keepEntries.Count == 0) RemoveAnn(mdl, AnnotationList(mdl).First(a => a.Name == AnnRemovedChildren));
+    else SetAnn(mdl, AnnRemovedChildren, keepEntries.ToString(Newtonsoft.Json.Formatting.None));
+}
+
 string RelationshipKey(TOM.SingleColumnRelationship r)
 {
     return r.FromTable.Name + "[" + r.FromColumn.Name + "] -> " + r.ToTable.Name + "[" + r.ToColumn.Name + "]";
@@ -438,6 +526,7 @@ TOM.Database BuildPerspectiveModel(string perspective, string newName, List<stri
     foreach (var r in mdl.Relationships.Where(r => !(r is TOM.SingleColumnRelationship)).ToList())
         if (!keep.Contains("Table|" + r.FromTable.Name) || !keep.Contains("Table|" + r.ToTable.Name)) mdl.Relationships.Remove(r);
 
+    var removedTables = new List<TOM.Table>();
     foreach (var t in mdl.Tables.ToList())
     {
         if (!keep.Contains("Table|" + t.Name))
@@ -445,6 +534,7 @@ TOM.Database BuildPerspectiveModel(string perspective, string newName, List<stri
             foreach (var role in mdl.Roles)
                 foreach (var tp in role.TablePermissions.Where(tp => tp.Table == t).ToList()) role.TablePermissions.Remove(tp);
             mdl.Tables.Remove(t);
+            removedTables.Add(t);
             continue;
         }
         foreach (var h in t.Hierarchies.ToList()) if (!keep.Contains("Hierarchy|" + t.Name + "|" + h.Name)) t.Hierarchies.Remove(h);
@@ -463,11 +553,10 @@ TOM.Database BuildPerspectiveModel(string perspective, string newName, List<stri
             log.Add("Table '" + t.Name + "' has no kept columns - check the perspective.");
     }
 
-    // Variations pointing to removed relationships/tables (auto date/time)
-    foreach (var t in mdl.Tables)
-        foreach (var c in t.Columns)
-            foreach (var v in c.Variations.ToList())
-                if (v.Relationship == null || !IsAttached(v.Relationship, mdl)) c.Variations.Remove(v);
+    // Variations (auto date/time), permissions and translations of removed objects; source objects
+    // removed on purpose (PBI_RemovedChildren)
+    RemoveDanglingReferences(mdl);
+    UpdateRemovedChildren(mdl, removedTables, log);
 
     // Unused DAX UDFs
     var functions = Functions(mdl);
@@ -565,10 +654,8 @@ TOM.Database BuildPerspectiveModel(string perspective, string newName, List<stri
         if (permission != null) role.ModelPermission = permission == "Administrator" ? TOM.ModelPermission.Administrator : TOM.ModelPermission.Read;
     }
 
-    // Translations of removed objects
-    foreach (var culture in mdl.Cultures)
-        foreach (var translation in culture.ObjectTranslations.ToList())
-            if (translation.Object == null || !IsAttached(translation.Object, mdl)) culture.ObjectTranslations.Remove(translation);
+    // Roles/partitions removed by the annotations above
+    RemoveDanglingReferences(mdl);
 
     // Remove the per-perspective annotations of ALL perspectives from the output
     foreach (var obj in AllObjects(mdl))
@@ -683,6 +770,7 @@ void ApplyMerge(List<MergeItem> items, TOM.Model target, List<string> log)
     Func<string, TOM.Table> tableOf = name => target.Tables.Find(name);
 
     // 1. Removals (relationships and hierarchies before columns, children before tables)
+    var removedTables = new List<TOM.Table>();
     var removals = items.Where(i => i.Action == "Remove" || (i.Action == "Take master" && (i.Kind == "Relationship" || i.Kind == "Hierarchy" || i.Kind == "Role"))).ToList();
     foreach (var i in removals.OrderBy(i => i.Kind == "Relationship" ? 0 : i.Kind == "Hierarchy" ? 1 : i.Kind == "Table" ? 9 : 5))
     {
@@ -705,6 +793,9 @@ void ApplyMerge(List<MergeItem> items, TOM.Model target, List<string> log)
             foreach (var r in target.Relationships.OfType<TOM.SingleColumnRelationship>().Where(r => r.FromColumn == c || r.ToColumn == c).ToList()) target.Relationships.Remove(r);
             foreach (var h in c.Table.Hierarchies.Where(h => h.Levels.Any(l => l.Column == c)).ToList()) c.Table.Hierarchies.Remove(h);
             foreach (var other in c.Table.Columns.Where(o => o.SortByColumn == c).ToList()) other.SortByColumn = null;
+            foreach (var role in target.Roles)
+                foreach (var tp in role.TablePermissions)
+                    foreach (var cp in tp.ColumnPermissions.Where(cp => cp.Column == c).ToList()) tp.ColumnPermissions.Remove(cp);
             c.Table.Columns.Remove(c);
         }
         else if (obj is TOM.Table)
@@ -714,8 +805,10 @@ void ApplyMerge(List<MergeItem> items, TOM.Model target, List<string> log)
             foreach (var role in target.Roles)
                 foreach (var tp in role.TablePermissions.Where(tp => tp.Table == t).ToList()) role.TablePermissions.Remove(tp);
             target.Tables.Remove(t);
+            removedTables.Add(t);
         }
     }
+    RemoveDanglingReferences(target);
 
     var adds = items.Where(i => i.Action == "Add" || i.Action == "Take master").ToList();
 
@@ -828,6 +921,10 @@ void ApplyMerge(List<MergeItem> items, TOM.Model target, List<string> log)
         var fromColumn = fromTable == null ? null : fromTable.Columns.Find(source.FromColumn.Name);
         var toColumn = toTable == null ? null : toTable.Columns.Find(source.ToColumn.Name);
         if (fromColumn == null || toColumn == null) { log.Add("Skipped relationship " + i.Label + " - a column is missing locally."); continue; }
+        // Never twice between the same two columns (e.g. direction reversed in the master and the local one kept)
+        if (target.Relationships.OfType<TOM.SingleColumnRelationship>().Any(r =>
+            (r.FromColumn == fromColumn && r.ToColumn == toColumn) || (r.FromColumn == toColumn && r.ToColumn == fromColumn)))
+        { log.Add("Skipped relationship " + i.Label + " - the model already has a relationship between these columns."); continue; }
         target.Relationships.Add(new TOM.SingleColumnRelationship {
             Name = Guid.NewGuid().ToString(),
             FromColumn = fromColumn, ToColumn = toColumn,
@@ -861,6 +958,9 @@ void ApplyMerge(List<MergeItem> items, TOM.Model target, List<string> log)
         }
         target.Roles.Add(role);
     }
+
+    // 8. Tables removed here are source objects removed on purpose (expressions may have been replaced in step 4)
+    UpdateRemovedChildren(target, removedTables, log);
 }
 
 // ---------------------------------------------------------------------------
@@ -921,6 +1021,80 @@ void CreateModelFolder(TOM.Database db, string semanticModelFolder, string name)
             ["metadata"] = new JObject { ["type"] = "SemanticModel", ["displayName"] = name },
             ["config"] = new JObject { ["version"] = "2.0", ["logicalId"] = Guid.NewGuid().ToString() }
         }.ToString());
+}
+
+// Power BI Desktop project: <Name>.pbip + blank PBIR <Name>.Report bound byPath to the
+// model. Existing files are never overwritten. Returns a note for the summary.
+string CreateDesktopProject(string folder, string name, string themeSearchFolder)
+{
+    var pbip = Path.Combine(folder, name + ".pbip");
+    var reportFolder = Path.Combine(folder, name + ".Report");
+    if (File.Exists(pbip) || Directory.Exists(reportFolder)) return "Desktop project exists - not changed.";
+
+    // Reuse a base theme from a report in the folder (e.g. the master's) if there is one
+    JObject themeCollection = new JObject();
+    JArray resourcePackages = null;
+    string themeFile = null;
+    foreach (var dir in Directory.GetDirectories(folder, "*.Report").Concat(Directory.GetDirectories(themeSearchFolder, "*.Report")))
+    {
+        var themes = Path.Combine(dir, "StaticResources", "SharedResources", "BaseThemes");
+        if (!Directory.Exists(themes)) continue;
+        themeFile = Directory.GetFiles(themes, "*.json").FirstOrDefault();
+        if (themeFile != null) break;
+    }
+    if (themeFile != null)
+    {
+        var themeName = Path.GetFileNameWithoutExtension(themeFile);
+        themeCollection = new JObject { ["baseTheme"] = new JObject {
+            ["name"] = themeName,
+            ["reportVersionAtImport"] = new JObject { ["visual"] = "2.12.0", ["report"] = "3.4.0", ["page"] = "2.3.1" },
+            ["type"] = "SharedResources" } };
+        resourcePackages = new JArray { new JObject {
+            ["name"] = "SharedResources", ["type"] = "SharedResources",
+            ["items"] = new JArray { new JObject { ["name"] = themeName, ["path"] = "BaseThemes/" + themeName + ".json", ["type"] = "BaseTheme" } } } };
+    }
+
+    var definition = Path.Combine(reportFolder, "definition");
+    var pageId = Guid.NewGuid().ToString("N").Substring(0, 20);
+    Directory.CreateDirectory(Path.Combine(definition, "pages", pageId));
+    if (themeFile != null)
+    {
+        var target = Path.Combine(reportFolder, "StaticResources", "SharedResources", "BaseThemes");
+        Directory.CreateDirectory(target);
+        File.Copy(themeFile, Path.Combine(target, Path.GetFileName(themeFile)));
+    }
+
+    var report = new JObject {
+        ["$schema"] = "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/report/3.3.0/schema.json",
+        ["themeCollection"] = themeCollection
+    };
+    if (resourcePackages != null) report["resourcePackages"] = resourcePackages;
+    report["settings"] = new JObject { ["useStylableVisualContainerHeader"] = true, ["useEnhancedTooltips"] = true, ["useDefaultAggregateDisplayName"] = true };
+
+    File.WriteAllText(Path.Combine(definition, "report.json"), report.ToString());
+    File.WriteAllText(Path.Combine(definition, "version.json"), new JObject {
+        ["$schema"] = "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/versionMetadata/1.0.0/schema.json",
+        ["version"] = "2.0.0" }.ToString());
+    File.WriteAllText(Path.Combine(definition, "pages", "pages.json"), new JObject {
+        ["$schema"] = "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/pagesMetadata/1.1.0/schema.json",
+        ["pageOrder"] = new JArray { pageId }, ["activePageName"] = pageId }.ToString());
+    File.WriteAllText(Path.Combine(definition, "pages", pageId, "page.json"), new JObject {
+        ["$schema"] = "https://developer.microsoft.com/json-schemas/fabric/item/report/definition/page/2.1.0/schema.json",
+        ["name"] = pageId, ["displayName"] = "Page 1", ["displayOption"] = "FitToPage", ["height"] = 720, ["width"] = 1280 }.ToString());
+    File.WriteAllText(Path.Combine(reportFolder, "definition.pbir"), new JObject {
+        ["$schema"] = "https://developer.microsoft.com/json-schemas/fabric/item/report/definitionProperties/2.0.0/schema.json",
+        ["version"] = "4.0",
+        ["datasetReference"] = new JObject { ["byPath"] = new JObject { ["path"] = "../" + name + ".SemanticModel" } } }.ToString());
+    File.WriteAllText(Path.Combine(reportFolder, ".platform"), new JObject {
+        ["$schema"] = "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+        ["metadata"] = new JObject { ["type"] = "Report", ["displayName"] = name },
+        ["config"] = new JObject { ["version"] = "2.0", ["logicalId"] = Guid.NewGuid().ToString() } }.ToString());
+    File.WriteAllText(pbip, new JObject {
+        ["$schema"] = "https://developer.microsoft.com/json-schemas/fabric/pbip/pbipProperties/1.0.0/schema.json",
+        ["version"] = "1.0",
+        ["artifacts"] = new JArray { new JObject { ["report"] = new JObject { ["path"] = name + ".Report" } } },
+        ["settings"] = new JObject { ["enableAutoRecovery"] = true } }.ToString());
+    return "Desktop project: " + name + ".pbip (refresh data in Desktop).";
 }
 
 // Existing models created by this macro: read the annotations without loading the model
@@ -1021,27 +1195,43 @@ var settingsFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFol
 string outputFolder = null;
 using (var fbd = new FolderBrowserDialog())
 {
-    fbd.Description = "Select the folder that contains the master .SemanticModel folder. New perspective models are created here, existing ones are found here.";
+    fbd.Description = "Select the folder where the perspective models are created. Each model gets its own folder <Perspective> model\\ here, holding <Name>.pbip, <Name>.SemanticModel and <Name>.Report.";
     try { if (File.Exists(settingsFile)) fbd.SelectedPath = File.ReadAllText(settingsFile).Trim(); } catch { }
     if (fbd.ShowDialog() != DialogResult.OK) { Info("Cancelled - no changes made."); return; }
     outputFolder = fbd.SelectedPath;
 }
 try { Directory.CreateDirectory(Path.GetDirectoryName(settingsFile)); File.WriteAllText(settingsFile, outputFolder); } catch { }
 
-var derivedModels = FindDerivedModels(outputFolder);
+var masterFolderModels = FindDerivedModels(outputFolder);
+var masterCandidates = masterFolderModels.Where(d => d.Perspective == null && d.HasPerspectives).ToList();
+
+// Each perspective model gets its own project folder <Name>\ in the selected folder
+var baseFolder = outputFolder;
+
+// Existing models: in their own project folder (<base>\<Name>\) or, created by older versions, in the selected folder
+var derivedModels = new List<DerivedModel>(masterFolderModels);
+foreach (var dir in Directory.GetDirectories(baseFolder))
+    if (!string.Equals(Path.GetFullPath(dir).TrimEnd('\\'), Path.GetFullPath(outputFolder).TrimEnd('\\'), StringComparison.OrdinalIgnoreCase))
+        try { derivedModels.AddRange(FindDerivedModels(dir)); } catch { }
+
+string ModelFolderFor(string name)
+{
+    var existing = derivedModels.FirstOrDefault(d => SameName(d.Name, name));
+    return existing != null ? existing.Folder : Path.Combine(baseFolder, name, name + ".SemanticModel");
+}
 
 // PBIP models have no database name: use the master's folder name (the model in this
 // folder that still has perspectives) for default names and the MasterModel_Source stamp
-if (masterName == "Model")
-{
-    var masterCandidates = derivedModels.Where(d => d.Perspective == null && d.HasPerspectives).ToList();
-    if (masterCandidates.Count == 1) masterName = masterCandidates[0].Name;
-}
+if (masterName == "Model" && masterCandidates.Count == 1) masterName = masterCandidates[0].Name;
+// PBIX in Desktop (or any connected model) has a server; a PBIP/TMDL file does not
+bool masterIsPbix = masterDb.Server != null;
 
 // ---------------------------------------------------------------------------
 // Step 2: perspectives grid (multi-select, editable names)
 // ---------------------------------------------------------------------------
-var perspectiveRows = perspectiveNames.Select(pn => new PerspectiveRow {
+// Perspectives selected in the TOM Explorer limit the list (pre-ticked); none selected = all
+var selectedPerspectives = Selected.OfType<Perspective>().Select(p => p.Name).ToList();
+var perspectiveRows = perspectiveNames.Where(pn => selectedPerspectives.Count == 0 || selectedPerspectives.Contains(pn)).Select(pn => new PerspectiveRow {
     Perspective = pn,
     Tables = Model.Tables.Count(t => t.InPerspective[pn]),
     Columns = Model.AllColumns.Count(c => c.InPerspective[pn]),
@@ -1063,15 +1253,18 @@ Func<string, string, Tuple<string, string, bool>> Evaluate = (perspective, name)
 };
 
 var runList = new List<Tuple<string, string, string>>();   // perspective, name, action
+bool createDesktopProject = true;
 using (var dlg = new Form())
 {
-    var panel = CreateDialogLayout(dlg, "Master model - perspective models", 4, DialogSize(0.75, 0.6));
+    var panel = CreateDialogLayout(dlg, "Master model - perspective models", 5, DialogSize(0.75, 0.6));
     panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
     panel.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
     panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
     panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+    panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
     var grid = EditGrid();
+    grid.DataError += (s, e) => { e.ThrowException = false; };
     var includeColumn = new DataGridViewCheckBoxColumn { Name = "Include", HeaderText = "Include", Width = 60 };
     Highlight(includeColumn);
     grid.Columns.Add(includeColumn);
@@ -1079,28 +1272,54 @@ using (var dlg = new Form())
     var nameColumn = new DataGridViewTextBoxColumn { Name = "ModelName", HeaderText = "Model name (edit)", Width = 260 };
     Highlight(nameColumn);
     grid.Columns.Add(nameColumn);
-    grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Action", HeaderText = "Action", Width = 70, ReadOnly = true });
+    var actionColumn = new DataGridViewComboBoxColumn { Name = "Action", HeaderText = "Action (edit)", Width = 110, FlatStyle = FlatStyle.Flat };
+    actionColumn.Items.AddRange("-", "Create", "Update", "Recreate");
+    Highlight(actionColumn);
+    grid.Columns.Add(actionColumn);
     grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Status", HeaderText = "Status", ReadOnly = true, AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, MinimumWidth = 220 });
     grid.Columns.Add(new DataGridViewTextBoxColumn { Name = "Content", HeaderText = "In perspective", Width = 190, ReadOnly = true });
 
     foreach (var pr in perspectiveRows)
     {
         var existing = derivedModels.FirstOrDefault(d => d.Perspective != null && SameName(d.Perspective, pr.Perspective));
-        var defaultName = existing != null ? existing.Name : pr.Perspective + " " + masterName;
-        int index = grid.Rows.Add(false, pr.Perspective, defaultName, "", "", pr.Tables + " tables, " + pr.Columns + " columns, " + pr.Measures + " measures");
+        var defaultName = existing != null ? existing.Name : pr.Perspective + " model";
+        int index = grid.Rows.Add(selectedPerspectives.Count > 0, pr.Perspective, defaultName, "-", "", pr.Tables + " tables, " + pr.Columns + " columns, " + pr.Measures + " measures");
         grid.Rows[index].Tag = pr;
     }
 
-    Action<int> refresh = rowIndex =>
+    // Name changes reset the action to its safe default; choosing Recreate only changes the status text
+    bool refreshing = false;
+    Action<int, bool> refresh = (rowIndex, nameChanged) =>
     {
+        if (refreshing) return;
+        refreshing = true;
         var row = grid.Rows[rowIndex];
         var result = Evaluate((string)row.Cells["Perspective"].Value, Convert.ToString(row.Cells["ModelName"].Value));
-        row.Cells["Action"].Value = result.Item1;
-        row.Cells["Status"].Value = result.Item2;
-        row.Cells["Status"].Style.ForeColor = !result.Item3 ? Color.DarkRed : result.Item1 == "Update" ? Color.DarkOrange : Color.DarkGreen;
+        var cell = (DataGridViewComboBoxCell)row.Cells["Action"];
+        var current = Convert.ToString(cell.Value);
+        cell.Items.Clear();
+        if (!result.Item3) cell.Items.Add("-");
+        else if (result.Item1 == "Create") cell.Items.Add("Create");
+        else { cell.Items.Add("Update"); cell.Items.Add("Recreate"); }
+        cell.Value = !nameChanged && cell.Items.Contains(current) ? current : cell.Items[0];
+        var recreate = Convert.ToString(cell.Value) == "Recreate";
+        row.Cells["Status"].Value = recreate ? "OVERWRITE: replaces the model definition with a fresh build (backup in %TEMP%). Local changes are lost." : result.Item2;
+        row.Cells["Status"].Style.ForeColor = !result.Item3 || recreate ? Color.DarkRed : result.Item1 == "Update" ? Color.DarkOrange : Color.DarkGreen;
+        refreshing = false;
     };
-    for (int i = 0; i < grid.Rows.Count; i++) refresh(i);
-    grid.CellValueChanged += (s, e) => { if (e.RowIndex >= 0) refresh(e.RowIndex); };
+    for (int i = 0; i < grid.Rows.Count; i++) refresh(i, true);
+    grid.CellValueChanged += (s, e) =>
+    {
+        if (e.RowIndex < 0) return;
+        var column = grid.Columns[e.ColumnIndex].Name;
+        if (column == "ModelName") refresh(e.RowIndex, true);
+        else if (column == "Action") refresh(e.RowIndex, false);
+    };
+
+    var desktopCheck = new CheckBox {
+        Text = "Create the Power BI Desktop file (<Name>.pbip + blank <Name>.Report, required by Desktop) - open and publish from Desktop, no Git needed. Existing .pbip/.Report files are never changed.",
+        AutoSize = true, Checked = createDesktopProject, Margin = new Padding(0, 8, 0, 0)
+    };
 
     var buttons = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, Margin = new Padding(0, 8, 0, 0) };
     var okButton = new Button { Text = "Continue", AutoSize = true, Font = new Font("Segoe UI", 9, FontStyle.Bold), Margin = new Padding(0, 0, 8, 0) };
@@ -1127,21 +1346,27 @@ using (var dlg = new Form())
                 MessageBox.Show("The name '" + name + "' is used twice.", "Model name", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
-            runList.Add(Tuple.Create(perspective, name, result.Item1));
+            runList.Add(Tuple.Create(perspective, name, Convert.ToString(row.Cells["Action"].Value)));
         }
         if (runList.Count == 0)
         {
             MessageBox.Show("Tick at least one perspective.", "Nothing selected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
+        var overwrites = runList.Where(r => r.Item3 == "Recreate").Select(r => r.Item2).ToList();
+        if (overwrites.Count > 0 && MessageBox.Show("These models will be OVERWRITTEN (local changes lost, backup in %TEMP%\\MasterModelBackup):\n\n" +
+            string.Join("\n", overwrites) + "\n\nContinue?", "Recreate", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+        createDesktopProject = desktopCheck.Checked;
         dlg.DialogResult = DialogResult.OK;
         dlg.Close();
     };
 
-    panel.Controls.Add(Heading("Master: " + masterName + "  |  Folder: " + outputFolder + "\nTick the perspectives to process. The model name decides the action: a new name creates a model, an existing name updates it."), 0, 0);
+    panel.Controls.Add(Heading("Master: " + masterName + (masterIsPbix ? " (PBIX / connected model)" : "") + "  |  New models go in: " + baseFolder + "\\<Name>\\" +
+        "\nTick the perspectives to process. A new name creates a model; an existing name is updated (merged) unless you choose Recreate."), 0, 0);
     panel.Controls.Add(grid, 0, 1);
-    panel.Controls.Add(Hint("Create writes <Name>.SemanticModel (TMDL, no report) in the folder above. Update merges master changes into the existing model and asks when both sides changed. The master model is not changed."), 0, 2);
-    panel.Controls.Add(buttons, 0, 3);
+    panel.Controls.Add(Hint("Create writes <Name>\\<Name>.SemanticModel (PBIP format, TMDL) - one project folder per model. Update merges master changes into the existing model and asks when both sides changed. Recreate overwrites. The master model is not changed."), 0, 2);
+    panel.Controls.Add(desktopCheck, 0, 3);
+    panel.Controls.Add(buttons, 0, 4);
     dlg.CancelButton = cancelButton;
     if (dlg.ShowDialog() != DialogResult.OK) { Info("Cancelled - no changes made."); return; }
 }
@@ -1160,7 +1385,8 @@ foreach (var run in runList)
 {
     var perspective = run.Item1;
     var name = run.Item2;
-    var semanticModelFolder = Path.Combine(outputFolder, name + ".SemanticModel");
+    var semanticModelFolder = ModelFolderFor(name);
+    var projectFolder = Path.GetDirectoryName(semanticModelFolder);
     var log = new List<string>();
 
     try
@@ -1168,13 +1394,21 @@ foreach (var run in runList)
         var generated = BuildPerspectiveModel(perspective, name, log);
         var masterUnits = CollectUnits(generated.Model);
 
-        if (run.Item3 == "Create")
+        if (run.Item3 == "Create" || run.Item3 == "Recreate")
         {
             WriteBaseline(generated.Model, masterUnits);
-            CreateModelFolder(generated, semanticModelFolder, name);
-            summary.Rows.Add(name, perspective, "Create",
-                "Created with " + generated.Model.Tables.Count + " tables, " + generated.Model.Tables.Sum(t => t.Measures.Count) + " measures",
-                string.Join("; ", log));
+            string backupNote = "";
+            if (run.Item3 == "Create") CreateModelFolder(generated, semanticModelFolder, name);
+            else
+            {
+                // Keeps definition.pbism and .platform (same Fabric item), replaces the definition
+                var previous = SaveModel(generated, semanticModelFolder);
+                if (previous != null) backupNote = "Backup: " + previous + ". ";
+            }
+            if (createDesktopProject) log.Add(CreateDesktopProject(projectFolder, name, outputFolder));
+            summary.Rows.Add(name, perspective, run.Item3,
+                (run.Item3 == "Create" ? "Created" : "Recreated (overwritten)") + " with " + generated.Model.Tables.Count + " tables, " + generated.Model.Tables.Sum(t => t.Measures.Count) + " measures",
+                backupNote + string.Join("; ", log));
             continue;
         }
 
@@ -1186,7 +1420,8 @@ foreach (var run in runList)
 
         if (items.Count == 0)
         {
-            summary.Rows.Add(name, perspective, "Update", "Already up to date - no changes", "");
+            if (createDesktopProject) log.Add(CreateDesktopProject(projectFolder, name, outputFolder));
+            summary.Rows.Add(name, perspective, "Update", "Already up to date - no changes", string.Join("; ", log));
             continue;
         }
 
@@ -1308,6 +1543,7 @@ foreach (var run in runList)
         SetAnn(localDb.Model, AnnSource, masterName);
         SetAnn(localDb.Model, AnnPerspective, perspective);
         var backup = SaveModel(localDb, semanticModelFolder);
+        if (createDesktopProject) log.Add(CreateDesktopProject(projectFolder, name, outputFolder));
 
         summary.Rows.Add(name, perspective, "Update",
             items.Count(i => i.Action == "Add") + " added, " + items.Count(i => i.Action == "Take master") + " updated, " +
@@ -1322,6 +1558,6 @@ foreach (var run in runList)
 
 Output(summary);
 Info("Done. See the output grid for each model.\n\n" +
-    "The master model was not changed. New/updated models are written in:\n" + outputFolder + "\n\n" +
-    "Next: open <Name>.SemanticModel\\definition in Tabular Editor to review, then deploy or sync the folder with Fabric Git integration. " +
+    "The master model was not changed. New models get their own project folder in:\n" + baseFolder + "\n\n" +
+    "Next: open <Name>.pbip in Power BI Desktop (refresh data first), or open <Name>.SemanticModel\\definition in Tabular Editor, then publish / deploy or sync the folder with Fabric Git integration. " +
     "Review Copilot / linguistic settings for the smaller models.");

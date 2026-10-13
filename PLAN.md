@@ -4,7 +4,7 @@
 
 | Question | Choice | Why |
 |---|---|---|
-| Pages, Wiki or HTML? | **GitHub Pages + MkDocs Material** | You write Markdown and get navigation, search, dark mode, warning boxes, video and code blocks. Wiki has no drafts or release control; hand-written HTML is slow to maintain. |
+| Pages, Wiki or HTML? | **GitHub Pages + Zensical** (successor to MkDocs Material) | You write Markdown and get navigation, search, dark mode, warning boxes, video and code blocks. Wiki has no drafts or release control; hand-written HTML is slow to maintain. |
 | Separate repo for drafts? | **No, one repo with front-matter flags** | `draft: true` hides a page; `publish: YYYY-MM-DD` releases it on that date. No copying between repos. |
 | Move the macros? | **Yes, into `TE macros/` in this repo** | Pages link to them and embed the code from the same file, so there is one source of truth. |
 | Videos | **MP4 in `docs/assets/videos/`** | No ads, no tracking, plays inline. Keep clips < 60 s, 720p, < 20 MB. |
@@ -19,7 +19,7 @@
 
 ## Reviewer access
 
-- **Recommended:** add the reviewer as a collaborator. They run `SHOW_DRAFTS=1 mkdocs serve` to see
+- **Recommended:** add the reviewer as a collaborator. They run `python build.py serve` to see
   every page as it will look, and give feedback through PR comments or issues.
   Drafts are marked with a "Draft, not published" banner.
 - Note: the repo is public, so draft Markdown is readable to anyone browsing the source,
@@ -34,7 +34,7 @@
 
 ## Writing workflow
 
-1. Sketch: copy `templates/macro-page.md`, fill the front matter, add a nav line in `mkdocs.yml`.
+1. Sketch: copy `templates/macro-page.md`, fill the front matter, add a nav line in `zensical.toml`.
 2. Write your own text into each section in rough English; replace the `!!! todo` blocks.
 3. Ask Claude: "copy-edit docs/…/page.md". It fixes spelling, grammar and formatting only (see `CLAUDE.md`).
 4. Record the clip, save it to `docs/assets/videos/`, and preview it locally.

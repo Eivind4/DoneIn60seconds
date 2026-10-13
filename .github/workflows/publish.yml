@@ -25,10 +25,10 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -r requirements.txt
-      - run: mkdocs build
+      - run: python build.py build
       - uses: actions/upload-pages-artifact@v3
         with:
-          path: site
+          path: .build/site
 
   deploy:
     needs: build

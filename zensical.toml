@@ -1,0 +1,140 @@
+# Source config. Do not run `zensical` on this file directly: it would publish drafts.
+# Use `python build.py serve` (preview, drafts included) or `python build.py build` (production).
+# build.py applies the release rules and writes the real config to .build/mkdocs.yml.
+
+[project]
+site_name = "Done in 60 seconds"
+site_description = "Solving common Power BI challenges in less than 60 seconds. Deterministic, token free and model-independent."
+site_author = "Eivind Haugen"
+site_url = "https://eivind4.github.io/DoneIn60seconds/"
+repo_url = "https://github.com/Eivind4/DoneIn60seconds"
+repo_name = "Eivind4/DoneIn60seconds"
+edit_uri = "edit/main/docs/"
+copyright = "© Eivind Haugen"
+extra_css = ["stylesheets/extra.css"]
+
+# One line per page. Draft and future-dated pages are removed automatically at build time.
+# The reading list is added by build.py in preview only.
+nav = [
+  { "Home" = "index.md" },
+  { "Christmas calendar" = "calendar.md" },
+  { "General" = [
+    "general/index.md",
+    { "About" = "general/about.md" },
+    { "Tabular Editor" = "general/tabular-editor.md" },
+    { "PBIR files" = "general/pbir-files.md" },
+    { "Theme file" = "general/theme-file.md" },
+    { "Semantic Link Labs" = "general/semantic-link-labs.md" },
+  ] },
+  { "Semantic model" = [
+    "semantic-model/index.md",
+    { "Create a calendar" = "semantic-model/create-calendar.md" },
+    { "Create time intelligence" = "semantic-model/create-time-intelligence.md" },
+    { "Measures with time intelligence" = "semantic-model/measures-with-time-intelligence.md" },
+    { "Dynamic axis" = "semantic-model/dynamic-axis.md" },
+    { "Comparison" = "semantic-model/comparison.md" },
+    { "Ranking" = "semantic-model/ranking.md" },
+    { "Error bars" = "semantic-model/error-bars.md" },
+    { "Conditional formatting" = "semantic-model/conditional-formatting.md" },
+  ] },
+  { "PBIR" = [
+    "pbir/index.md",
+    { "Update column or measure name" = "pbir/update-column-measure-name.md" },
+    { "Batch rename measures" = "pbir/batch-rename-measures.md" },
+    { "Fix broken measures" = "pbir/fix-broken-measures.md" },
+    { "Set display name" = "pbir/set-display-name.md" },
+    { "Update display name" = "pbir/update-display-name.md" },
+    { "Detect unused objects" = "pbir/detect-unused-objects.md" },
+  ] },
+  { "Best Practice Rules" = [
+    "best-practice-rules/index.md",
+    { "Automate fixes with fix scripts" = "best-practice-rules/automate-fixes.md" },
+  ] },
+  { "Master model" = [
+    "master-model/index.md",
+    { "Create model from perspective" = "master-model/create-model-from-perspective.md" },
+  ] },
+]
+
+[project.extra]
+tagline = "Solving common Power BI challenges in less than 60 seconds"
+
+# Christmas calendar: pages whose `publish` date is 1–24 December of this year fill the doors.
+[project.extra.advent]
+year = 2026
+days = 24
+
+[[project.extra.social]]
+icon = "fontawesome/brands/github"
+link = "https://github.com/Eivind4/DoneIn60seconds"
+
+[project.theme]
+variant = "modern"
+custom_dir = "overrides"
+logo = "assets/logo/logo-b-axis.svg"
+favicon = "assets/logo/logo-c-icon.svg"
+language = "en"
+features = [
+  "content.action.edit",
+  "content.code.copy",
+  "content.code.select",
+  "content.tabs.link",
+  "content.tooltips",
+  "navigation.footer",
+  "navigation.indexes",
+  "navigation.instant",
+  "navigation.instant.prefetch",
+  "navigation.path",
+  "navigation.sections",
+  "navigation.tabs",
+  "navigation.top",
+  "navigation.tracking",
+  "search.highlight",
+  "toc.follow",
+]
+
+[project.theme.icon]
+repo = "fontawesome/brands/github"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+scheme = "default"
+primary = "custom"
+accent = "custom"
+toggle.icon = "lucide/moon"
+toggle.name = "Dark mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+scheme = "slate"
+primary = "custom"
+accent = "custom"
+toggle.icon = "lucide/sun"
+toggle.name = "Light mode"
+
+[project.markdown_extensions]
+abbr = {}
+admonition = {}
+attr_list = {}
+def_list = {}
+footnotes = {}
+md_in_html = {}
+tables = {}
+toc.permalink = true
+pymdownx.betterem = {}
+pymdownx.details = {}
+pymdownx.emoji.emoji_generator = "zensical.extensions.emoji.to_svg"
+pymdownx.emoji.emoji_index = "zensical.extensions.emoji.twemoji"
+pymdownx.highlight.anchor_linenums = true
+pymdownx.highlight.line_spans = "__span"
+pymdownx.highlight.pygments_lang_class = true
+pymdownx.inlinehilite = {}
+pymdownx.keys = {}
+pymdownx.mark = {}
+pymdownx.snippets.check_paths = true
+pymdownx.superfences.custom_fences = [
+  { name = "mermaid", class = "mermaid", format = "pymdownx.superfences.fence_code_format" },
+]
+pymdownx.tabbed.alternate_style = true
+pymdownx.tabbed.combine_header_slug = true
+pymdownx.tasklist.custom_checkbox = true

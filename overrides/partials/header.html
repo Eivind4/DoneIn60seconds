@@ -1,5 +1,5 @@
 {#-
-  This file was automatically generated - do not edit
+  Zensical header with the tagline after the site name (config.extra.tagline).
 -#}
 {% set class = "md-header" %}
 {% if "navigation.tabs.sticky" in features %}
@@ -12,7 +12,7 @@
     <a href="{{ config.extra.homepage | d(nav.homepage.url, true) | url }}" title="{{ config.site_name | e }}" class="md-header__button md-logo" aria-label="{{ config.site_name }}" data-md-component="logo">
       {% include "partials/logo.html" %}
     </a>
-    <label class="md-header__button md-icon" for="__drawer">
+    <label class="md-header__button md-icon" for="__drawer" aria-label="{{ lang.t('nav') }}">
       {% set icon = config.theme.icon.menu or "material/menu" %}
       {% include ".icons/" ~ icon ~ ".svg" %}
     </label>
@@ -21,7 +21,7 @@
         <div class="md-header__topic">
           <span class="md-ellipsis">
             {{ config.site_name }}
-            {%- if config.extra.tagline %}<span class="header-tagline"> {{ config.extra.tagline }}</span>{% endif %}
+            {%- if config.extra.tagline %}<span class="header-tagline">{{ config.extra.tagline }}</span>{% endif %}
           </span>
         </div>
         <div class="md-header__topic" data-md-component="header-topic">
@@ -46,21 +46,21 @@
     {% if config.extra.alternate %}
       {% include "partials/alternate.html" %}
     {% endif %}
-    {% if "material/search" in config.plugins %}
-      {% set search = config.plugins["material/search"] | attr("config") %}
+    {% if "search" in config.plugins %}
+      {% set search = config.plugins["search"] | attr("config") %}
       {% if search.enabled %}
-        <label class="md-header__button md-icon" for="__search">
+        <label class="md-header__button md-icon" for="__search" aria-label="{{ lang.t('search') }}">
           {% set icon = config.theme.icon.search or "material/magnify" %}
           {% include ".icons/" ~ icon ~ ".svg" %}
         </label>
         {% include "partials/search.html" %}
       {% endif %}
     {% endif %}
-    {% if config.repo_url %}
-      <div class="md-header__source">
+    <div class="md-header__source">
+      {% if config.repo_url %}
         {% include "partials/source.html" %}
-      </div>
-    {% endif %}
+      {% endif %}
+    </div>
   </nav>
   {% if "navigation.tabs.sticky" in features %}
     {% if "navigation.tabs" in features %}

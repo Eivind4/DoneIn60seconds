@@ -1,6 +1,7 @@
 # Done in 60 seconds: knowledge site
 
-MkDocs Material site in `docs/`, published to GitHub Pages by `.github/workflows/publish.yml`.
+Zensical site in `docs/`, published to GitHub Pages by `.github/workflows/publish.yml`.
+Config is `zensical.toml`; `build.py` applies the release rules and builds (Zensical does not run MkDocs hooks).
 Macros live in `TE macros/`; pages link to them and include them with snippets.
 
 ## Your role: editor, not author
@@ -17,13 +18,16 @@ Eivind writes every sentence. You are the **copy editor**:
 ## Pages
 
 - New macro page: copy `templates/macro-page.md`, place it in `docs/semantic-model/`, `docs/pbir/`
-  or `docs/master-model/`, and add one line to `nav` in `mkdocs.yml`.
+  or `docs/master-model/`, and add one line to `nav` in `zensical.toml`.
 - One macro per page: the `macros` list holds a single file. Some linked macros are placeholders until Eivind maps the final one.
 - Section order is fixed: The challenge → Be aware (optional) → The solution → More on the
   solution → References. Each reference gets one line on why it is worth reading.
-- Front matter drives the meta strip and release (see `hooks/publishing.py`):
+- Front matter drives the meta strip and release (see `build.py`):
   `draft`, `publish`, `complexity`, `video_seconds`, `te_versions`, `macros`.
-- The reading-time strip, macro buttons and AI footer are injected by the hook; leave them out of the markdown.
+- The reading-time strip, macro buttons and AI footer are injected by `build.py`; leave them out of the markdown.
+- Christmas calendar: `docs/calendar.md` fills door N from the page with `publish: <year>-12-N`
+  (year in `extra.advent` in `zensical.toml`). Placeholders: `<!-- advent -->`, `<!-- pages -->`.
+- Reading list: `bookmarks.yml` (blogs and articles). Preview only, unless an entry has `public: true`.
 - Videos: `![caption](../assets/videos/<name>.mp4)` becomes a player. Keep clips < 60 s, 720p, < 20 MB.
 - Images: `docs/assets/images/`, always with meaningful alt text.
 - Show a macro's code with `--8<-- "TE macros/TE3/<file>.cs"` inside a collapsed `??? example` block.
@@ -35,5 +39,7 @@ if a live page still contains `!!! todo`: finish the text or keep the page as a 
 
 ## Commands
 
-- Preview everything, drafts included: `SHOW_DRAFTS=1 .venv/Scripts/mkdocs serve`
-- Production build check: `.venv/Scripts/mkdocs build`
+- Preview everything, drafts and reading list included: `.venv/Scripts/python build.py serve`
+- Preview what production publishes: `.venv/Scripts/python build.py serve --live` (add `--date 2026-12-05` to time-travel)
+- Production build check: `.venv/Scripts/python build.py build`
+- Never run `zensical` on `zensical.toml` directly: it skips the release rules and would include drafts.
