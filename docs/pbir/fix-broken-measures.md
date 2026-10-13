@@ -1,5 +1,6 @@
 ---
 draft: true
+publish: 2026-12-17
 complexity: Intermediate
 video_seconds: 45
 te_versions: [TE3]
@@ -7,9 +8,9 @@ macros:
   - TE macros/TE3/14 - Detect and repair broken PBIR references.cs
 ---
 
-# Fix broken measures
+# Detect and repair broken visuals
 
-![Fix broken measures](../assets/videos/fix-broken-measures.mp4)
+![Detect and repair broken visuals](../assets/videos/fix-broken-measures.mp4)
 
 ## The challenge
 

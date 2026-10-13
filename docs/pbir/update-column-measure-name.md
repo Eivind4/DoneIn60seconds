@@ -1,5 +1,6 @@
 ---
 draft: true
+publish: 2026-12-15
 complexity: Intermediate
 video_seconds: 45
 te_versions: [TE3]
@@ -7,9 +8,9 @@ macros:
   - TE macros/TE3/15 - Batch replace PBIR table column and measure references.cs
 ---
 
-# Update column or measure name
+# Rename tables and measures
 
-![Update column or measure name](../assets/videos/update-column-measure-name.mp4)
+![Rename tables and measures](../assets/videos/update-column-measure-name.mp4)
 
 ## The challenge
 

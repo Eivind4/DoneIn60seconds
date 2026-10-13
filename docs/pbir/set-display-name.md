@@ -1,5 +1,6 @@
 ---
 draft: true
+publish: 2026-12-18
 complexity: Beginner
 video_seconds: 45
 te_versions: [TE3]
@@ -7,9 +8,9 @@ macros:
   - TE macros/TE3/12 - Set display names for selected fields in PBIR.cs
 ---
 
-# Set display name
+# Set display names
 
-![Set display name](../assets/videos/set-display-name.mp4)
+![Set display names](../assets/videos/set-display-name.mp4)
 
 ## The challenge
 

@@ -1,5 +1,6 @@
 ---
 draft: true
+publish: 2026-12-02
 complexity: Intermediate
 video_seconds: 45
 te_versions: [TE3]
@@ -25,6 +26,7 @@ macros:
 
 !!! todo "Your words"
     What the macro does, in steps or bullets.
+    Calendar door 2 example: how many days to Christmas.
 
 ??? example "Show the script"
     ```csharp
