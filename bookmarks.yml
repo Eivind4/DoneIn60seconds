@@ -1,0 +1,22 @@
+# Reading list: blogs to follow and articles to keep.
+#
+# Everything here is shown on the "Reading list" page in local preview only (python build.py serve),
+# never on the published site. Add `public: true` to an entry to also list it on the public
+# "Worth following" page.
+# Note: this repository is public on GitHub, so this file itself can be read by anyone.
+#
+# Fields: url (required), name or title, author, feed (RSS), topics (list), added (date),
+#         note (your own words), read (true when done), public (true to share).
+
+blogs:
+  - name: Evaluation Context
+    url: https://evaluationcontext.com/
+    topics: [Power BI]
+    added: 2026-10-13
+
+articles:
+  # - title: Article title
+  #   url: https://example.com/article
+  #   topics: [DAX]
+  #   added: 2026-10-13
+  #   note: Why I saved it
