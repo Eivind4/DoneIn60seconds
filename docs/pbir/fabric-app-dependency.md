@@ -1,0 +1,34 @@
+---
+draft: true
+publish: 2026-12-21
+video_seconds: 45
+---
+
+# Fabric app dependency
+
+![Fabric app dependency](../assets/videos/fabric-app-dependency.mp4)
+
+## The challenge
+
+!!! todo "Your words"
+    What everyday problem does this solve? 2-4 sentences.
+
+!!! warning "Be aware"
+    !!! todo
+        Based on another solution? Destructive? Requirements? Delete this box if not needed.
+
+## The solution
+
+!!! todo "Your words"
+    What the code does, in steps or bullets. Snippet, macro or notebook?
+    Add the file to the repo, list it under `macros` and add the `??? example` block when ready.
+
+## More on the solution
+
+!!! todo "Your words"
+    Design choices, limitations, alternatives and similar scripts.
+
+## References
+
+!!! todo "Your words"
+    - [Title](url): one line on why it is worth reading.

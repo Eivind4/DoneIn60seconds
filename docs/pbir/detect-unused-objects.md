@@ -1,5 +1,6 @@
 ---
 draft: true
+publish: 2026-12-20
 complexity: Intermediate
 video_seconds: 45
 te_versions: [TE3]
@@ -7,9 +8,9 @@ macros:
   - TE macros/TE3/16 - Classify model dependencies from PBIR.cs
 ---
 
-# Detect unused objects
+# Classify model dependencies: report dependency
 
-![Detect unused objects](../assets/videos/detect-unused-objects.mp4)
+![Classify model dependencies: report dependency](../assets/videos/detect-unused-objects.mp4)
 
 ## The challenge
 

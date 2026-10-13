@@ -1,5 +1,6 @@
 ---
 draft: true
+publish: 2026-12-16
 complexity: Intermediate
 video_seconds: 45
 te_versions: [TE3]

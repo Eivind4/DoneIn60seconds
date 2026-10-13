@@ -1,5 +1,6 @@
 ---
 draft: true
+publish: 2026-12-19
 complexity: Beginner
 video_seconds: 45
 te_versions: [TE3]
@@ -7,9 +8,9 @@ macros:
   - TE macros/TE3/13 - Batch rename existing display names in PBIR.cs
 ---
 
-# Update display name
+# Batch rename display names
 
-![Update display name](../assets/videos/update-display-name.mp4)
+![Batch rename display names](../assets/videos/update-display-name.mp4)
 
 ## The challenge
 

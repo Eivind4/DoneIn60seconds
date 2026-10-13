@@ -39,20 +39,33 @@ nav = [
   ] },
   { "PBIR" = [
     "pbir/index.md",
-    { "Update column or measure name" = "pbir/update-column-measure-name.md" },
+    { "Rename tables and measures" = "pbir/update-column-measure-name.md" },
     { "Batch rename measures" = "pbir/batch-rename-measures.md" },
-    { "Fix broken measures" = "pbir/fix-broken-measures.md" },
-    { "Set display name" = "pbir/set-display-name.md" },
-    { "Update display name" = "pbir/update-display-name.md" },
-    { "Detect unused objects" = "pbir/detect-unused-objects.md" },
+    { "Detect and repair broken visuals" = "pbir/fix-broken-measures.md" },
+    { "Set display names" = "pbir/set-display-name.md" },
+    { "Batch rename display names" = "pbir/update-display-name.md" },
+    { "Classify model dependencies" = "pbir/detect-unused-objects.md" },
+    { "Fabric app dependency" = "pbir/fabric-app-dependency.md" },
+    { "Usage dependency 2.0" = "pbir/usage-dependency.md" },
+    { "Organize measures by usage" = "pbir/organize-measures-by-usage.md" },
   ] },
   { "Best Practice Rules" = [
     "best-practice-rules/index.md",
     { "Automate fixes with fix scripts" = "best-practice-rules/automate-fixes.md" },
+    { "Date inconsistencies" = "best-practice-rules/fix-inconsistent-dates.md" },
+    { "Duplicate measures" = "best-practice-rules/duplicate-measures.md" },
+  ] },
+  { "AI readiness" = [
+    "ai-readiness/index.md",
+    { "AI readiness settings" = "ai-readiness/ai-readiness-settings.md" },
+    { "Tailored BPA rules" = "ai-readiness/ai-readiness-bpa-rules.md" },
+    { "AI schema and verified answers" = "ai-readiness/ai-schema-verified-answers.md" },
   ] },
   { "Master model" = [
     "master-model/index.md",
     { "Create model from perspective" = "master-model/create-model-from-perspective.md" },
+    { "Mini models with a notebook" = "master-model/mini-models-notebook.md" },
+    { "Mini models with materialized lake views" = "master-model/mini-models-materialized-lake-views.md" },
   ] },
 ]
 

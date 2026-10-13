@@ -1,5 +1,6 @@
 ---
 draft: true
+publish: 2026-12-01
 complexity: Beginner
 video_seconds: 45
 te_versions: [TE3]
@@ -16,6 +17,7 @@ macros:
 
 !!! todo "Your words"
     What everyday problem does this solve? 2-4 sentences.
+    Calendar door 1: start with a calendar (not everyone celebrates Christmas).
 
 !!! warning "Be aware"
     !!! todo
