@@ -157,6 +157,12 @@ def _page_list(page: Page, pages: dict[str, Page], preview: bool) -> str:
     return "\n".join(r for _, r in rows) or "*First page coming soon.*"
 
 
+def _icon(page: Page) -> str:
+    """Front matter `icon: lucide/gift` as an inline icon for the calendar door."""
+    icon = page.meta.get("icon")
+    return f'<span class="advent__icon">:{icon.replace("/", "-")}:</span>' if icon else ""
+
+
 def _advent(page: Page, pages: dict[str, Page], config: dict, preview: bool) -> str:
     """Grid of calendar doors. Door N opens on N December when a live page is published that day."""
     advent = config.get("extra", {}).get("advent", {})
@@ -170,12 +176,12 @@ def _advent(page: Page, pages: dict[str, Page], config: dict, preview: bool) -> 
         today = " is-today" if date == TODAY else ""
         number = f'<span class="advent__day">{day}</span>'
         if target and not target.hidden:
-            label = f'<span class="advent__title">{target.title}</span>'
+            label = f'{_icon(target)}<span class="advent__title">{target.title}</span>'
             doors.append(f"[{number}{label}]({_rel(target.uri, page.uri)}){{ {classes} .is-open }}")
         elif preview:
             # Planning view: show what is behind each door, and which days are still empty
             if target:
-                label = f'<span class="advent__title">{target.title}</span>'
+                label = f'{_icon(target)}<span class="advent__title">{target.title}</span>'
                 doors.append(
                     f"[{number}{label}]({_rel(target.uri, page.uri)}){{ {classes} .is-planned }}"
                 )

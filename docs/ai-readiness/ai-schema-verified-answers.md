@@ -1,6 +1,7 @@
 ---
 draft: true
-publish: 2026-12-11
+publish: 2026-12-12
+icon: lucide/message-square-quote
 video_seconds: 45
 ---
 
@@ -10,18 +11,14 @@ video_seconds: 45
 
 ## The challenge
 
-!!! todo "Your words"
-    What everyday problem does this solve? 2-4 sentences.
-
-!!! warning "Be aware"
-    !!! todo
-        Based on another solution? Destructive? Requirements? Delete this box if not needed.
+With many models in a tenant, it is hard to know which ones have been prepared for AI with an AI data schema or verified answers.
 
 ## The solution
 
-!!! todo "Your words"
-    What the code does, in steps or bullets. Snippet, macro or notebook?
-    Add the file to the repo, list it under `macros` and add the `??? example` block when ready.
+The code lists the semantic models, and shows which ones have an AI data schema and verified answers.
+
+!!! todo
+    Add the script or notebook to `TE macros/TE3 shared/` (named with the day number), list it under `macros`, and add the `??? example` block.
 
 ## More on the solution
 
@@ -30,5 +27,5 @@ video_seconds: 45
 
 ## References
 
-!!! todo "Your words"
-    - [Title](url): one line on why it is worth reading.
+- [AI data schemas](https://learn.microsoft.com/power-bi/create-reports/copilot-prepare-data-ai-data-schema), Microsoft Learn: how the AI data schema limits what Copilot uses.
+- [Verified answers](https://learn.microsoft.com/power-bi/create-reports/copilot-prepare-data-ai-verified-answers), Microsoft Learn: how verified answers are set up and managed.

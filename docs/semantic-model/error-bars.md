@@ -1,34 +1,32 @@
 ---
 draft: true
-publish: 2026-12-06
+publish: 2026-12-07
+icon: lucide/chart-candlestick
 complexity: Intermediate
 video_seconds: 45
 te_versions: [TE3]
 macros:
-  - TE macros/TE3 shared/06 - Error bars DaxUDF.cs
+  - TE macros/TE3 shared/07 - Error bars for actual vs target DaxUDF.cs
 ---
 
-# Error bars
+# Error bars for actual vs. target with DaxUDF
 
-![Error bars](../assets/videos/error-bars.mp4)
+![Error bars for actual vs. target with DaxUDF](../assets/videos/error-bars.mp4)
 
 ## The challenge
 
-!!! todo "Your words"
-    What everyday problem does this solve? 2-4 sentences.
+Showing where the actual is clearly above or below the target makes a chart easier to read. Error bars can do this, but they need measures that only return a value when the deviation crosses a threshold.
 
 !!! warning "Be aware"
-    !!! todo
-        Based on another solution? Destructive? Requirements? Delete this box if not needed.
+    This is preparation for visuals. It may not be required if the content is consumed in a Fabric app.
 
 ## The solution
 
-!!! todo "Your words"
-    What the macro does, in steps or bullets.
+The macro creates two DaxUDF that return the actual only when it is more than a threshold above or below the target, and blank otherwise. Add the measures as error bars on the target series.
 
 ??? example "Show the script"
     ```csharp
-    --8<-- "TE macros/TE3 shared/06 - Error bars DaxUDF.cs"
+    --8<-- "TE macros/TE3 shared/07 - Error bars for actual vs target DaxUDF.cs"
     ```
 
 ## More on the solution
@@ -38,5 +36,5 @@ macros:
 
 ## References
 
-!!! todo "Your words"
-    - [Title](url): one line on why it is worth reading.
+- [Use the Analytics pane in Power BI: error bars](https://learn.microsoft.com/power-bi/transform-model/desktop-analytics-pane#add-error-bars), Microsoft Learn: how to add error bars by field.
+- [DAX user-defined functions](https://learn.microsoft.com/dax/best-practices/dax-user-defined-functions), Microsoft Learn: syntax, parameter types and limitations of DaxUDF.

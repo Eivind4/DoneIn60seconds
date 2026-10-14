@@ -1,11 +1,12 @@
 ---
 draft: true
-publish: 2026-12-12
+publish: 2026-12-13
+icon: lucide/layers-2
 complexity: Advanced
 video_seconds: 45
 te_versions: [TE3]
 macros:
-  - TE macros/TE3 shared/12 - Master model perspectives.cs
+  - TE macros/TE3 shared/13 - Master model perspectives.cs
 ---
 
 # Create model from perspective
@@ -14,21 +15,15 @@ macros:
 
 ## The challenge
 
-!!! todo "Your words"
-    What everyday problem does this solve? 2-4 sentences.
-
-!!! warning "Be aware"
-    !!! todo
-        Based on another solution? Destructive? Requirements? Delete this box if not needed.
+Maintaining many models with the same tables and measures means that the same change has to be made in several places.
 
 ## The solution
 
-!!! todo "Your words"
-    What the macro does, in steps or bullets.
+Develop one master model, and use perspectives to define the smaller models. The macro creates or updates one model per perspective, so a change is made once, in the master model.
 
 ??? example "Show the script"
     ```csharp
-    --8<-- "TE macros/TE3 shared/12 - Master model perspectives.cs"
+    --8<-- "TE macros/TE3 shared/13 - Master model perspectives.cs"
     ```
 
 ## More on the solution

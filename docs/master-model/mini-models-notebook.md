@@ -1,6 +1,7 @@
 ---
 draft: true
-publish: 2026-12-13
+publish: 2026-12-14
+icon: lucide/boxes
 video_seconds: 45
 ---
 
@@ -10,18 +11,14 @@ video_seconds: 45
 
 ## The challenge
 
-!!! todo "Your words"
-    What everyday problem does this solve? 2-4 sentences.
-
-!!! warning "Be aware"
-    !!! todo
-        Based on another solution? Destructive? Requirements? Delete this box if not needed.
+Maintaining many models with the same tables and measures means that the same change has to be made in several places.
 
 ## The solution
 
-!!! todo "Your words"
-    What the code does, in steps or bullets. Notebook.
-    Add the file to the repo, list it under `macros` and add the `??? example` block when ready.
+The notebook creates the smaller models from the master model in Fabric, without opening Tabular Editor.
+
+!!! todo
+    Add the script or notebook to `TE macros/TE3 shared/` (named with the day number), list it under `macros`, and add the `??? example` block.
 
 ## More on the solution
 
@@ -30,5 +27,4 @@ video_seconds: 45
 
 ## References
 
-!!! todo "Your words"
-    - [Title](url): one line on why it is worth reading.
+- [Semantic Link Labs](https://github.com/microsoft/semantic-link-labs), Microsoft on GitHub: run BPA and other model checks from a Fabric notebook.

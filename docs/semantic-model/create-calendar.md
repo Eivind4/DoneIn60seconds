@@ -1,16 +1,17 @@
 ---
 draft: true
 publish: 2026-12-01
+icon: lucide/calendar-days
 complexity: Beginner
 video_seconds: 45
 te_versions: [TE3]
 macros:
-  - TE macros/TE3 shared/01 - Create date table.cs
+  - TE macros/TE3 shared/01 - Create a formatted date table with calendar options.cs
 ---
 
-# Create a date table
+# Create a formatted date table with calendar options
 
-![Create a date table](../assets/videos/create-calendar.mp4)
+![Create a formatted date table with calendar options](../assets/videos/create-calendar.mp4)
 
 A good way to start a Christmas calendar… is a calendar.
 
@@ -52,7 +53,7 @@ It adds the calendar options, which we will use later.
 
 ??? example "Show the script"
     ```csharp
-    --8<-- "TE macros/TE3 shared/01 - Create date table.cs"
+    --8<-- "TE macros/TE3 shared/01 - Create a formatted date table with calendar options.cs"
     ```
 
 ## More on the solution

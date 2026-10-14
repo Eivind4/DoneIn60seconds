@@ -1,6 +1,7 @@
 ---
 draft: true
-publish: 2026-12-14
+publish: 2026-12-15
+icon: lucide/database-zap
 video_seconds: 45
 ---
 
@@ -10,18 +11,14 @@ video_seconds: 45
 
 ## The challenge
 
-!!! todo "Your words"
-    What everyday problem does this solve? 2-4 sentences.
-
-!!! warning "Be aware"
-    !!! todo
-        Based on another solution? Destructive? Requirements? Delete this box if not needed.
+Smaller models often need their own, smaller tables, and keeping these tables in sync with the source takes work.
 
 ## The solution
 
-!!! todo "Your words"
-    What the code does, in steps or bullets. Notebook or SQL with materialized lake views.
-    Add the file to the repo, list it under `macros` and add the `??? example` block when ready.
+Materialized lake views prepare the data for each smaller model in the lakehouse, and Fabric refreshes them in the right order.
+
+!!! todo
+    Add the script or notebook to `TE macros/TE3 shared/` (named with the day number), list it under `macros`, and add the `??? example` block.
 
 ## More on the solution
 
@@ -30,5 +27,4 @@ video_seconds: 45
 
 ## References
 
-!!! todo "Your words"
-    - [Title](url): one line on why it is worth reading.
+- [What are materialized lake views in Microsoft Fabric?](https://learn.microsoft.com/fabric/data-engineering/materialized-lake-views/overview-materialized-lake-view), Microsoft Learn: when to use them, and how refresh and dependencies work.

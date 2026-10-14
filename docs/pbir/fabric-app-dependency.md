@@ -1,6 +1,7 @@
 ---
 draft: true
 publish: 2026-12-21
+icon: lucide/app-window
 video_seconds: 45
 ---
 
@@ -10,18 +11,14 @@ video_seconds: 45
 
 ## The challenge
 
-!!! todo "Your words"
-    What everyday problem does this solve? 2-4 sentences.
-
-!!! warning "Be aware"
-    !!! todo
-        Based on another solution? Destructive? Requirements? Delete this box if not needed.
+Reports are often consumed through an app. Knowing which app and audience a report belongs to tells you who is affected by a change.
 
 ## The solution
 
-!!! todo "Your words"
-    What the code does, in steps or bullets. Snippet, macro or notebook?
-    Add the file to the repo, list it under `macros` and add the `??? example` block when ready.
+The code lists which apps, and which audiences, the reports are part of.
+
+!!! todo
+    Add the script or notebook to `TE macros/TE3 shared/` (named with the day number), list it under `macros`, and add the `??? example` block.
 
 ## More on the solution
 
@@ -30,5 +27,4 @@ video_seconds: 45
 
 ## References
 
-!!! todo "Your words"
-    - [Title](url): one line on why it is worth reading.
+- [Get started with org apps](https://learn.microsoft.com/power-bi/explore-reports/org-app-items), Microsoft Learn: apps and audiences, and how they control access.

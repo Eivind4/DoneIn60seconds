@@ -1,11 +1,12 @@
 ---
 draft: true
-publish: 2026-12-15
+publish: 2026-12-16
+icon: lucide/pencil-line
 complexity: Intermediate
 video_seconds: 45
 te_versions: [TE3]
 macros:
-  - TE macros/TE3 shared/15 - Rename tables and measures.cs
+  - TE macros/TE3 shared/16 - Rename tables and measures.cs
 ---
 
 # Rename tables and measures
@@ -14,21 +15,18 @@ macros:
 
 ## The challenge
 
-!!! todo "Your words"
-    What everyday problem does this solve? 2-4 sentences.
+Renaming a table, column or measure in the model breaks the visuals that use it in the reports built on the model.
 
 !!! warning "Be aware"
-    !!! todo
-        Based on another solution? Destructive? Requirements? Delete this box if not needed.
+    The macro changes the PBIR files. Save the report in Power BI Desktop first, and keep it in source control so the changes are easy to review and undo.
 
 ## The solution
 
-!!! todo "Your words"
-    What the macro does, in steps or bullets.
+The macro replaces the old table, column and measure references with the new ones in the PBIR files of the selected reports, so the reports keep working after the rename.
 
 ??? example "Show the script"
     ```csharp
-    --8<-- "TE macros/TE3 shared/15 - Rename tables and measures.cs"
+    --8<-- "TE macros/TE3 shared/16 - Rename tables and measures.cs"
     ```
 
 ## More on the solution
@@ -38,5 +36,4 @@ macros:
 
 ## References
 
-!!! todo "Your words"
-    - [Title](url): one line on why it is worth reading.
+- [Power BI Desktop project report folder](https://learn.microsoft.com/power-bi/developer/projects/projects-report#pbir-format), Microsoft Learn: the PBIR files that the macros read and change.

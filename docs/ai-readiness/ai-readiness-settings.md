@@ -1,6 +1,7 @@
 ---
 draft: true
-publish: 2026-12-09
+publish: 2026-12-10
+icon: lucide/bot
 video_seconds: 45
 te_versions: [TE3]
 ---
@@ -11,18 +12,14 @@ te_versions: [TE3]
 
 ## The challenge
 
-!!! todo "Your words"
-    What everyday problem does this solve? 2-4 sentences.
-
-!!! warning "Be aware"
-    !!! todo
-        Based on another solution? Destructive? Requirements? Delete this box if not needed.
+Before a model is used with Copilot or a data agent, it needs to be prepared for AI: an AI data schema, verified answers, AI instructions and descriptions. Checking this model by model is slow.
 
 ## The solution
 
-!!! todo "Your words"
-    What the code does, in steps or bullets. Check the AI readiness settings in models, and update them.
-    Add the file to the repo, list it under `macros` and add the `??? example` block when ready.
+The code checks the AI readiness settings across models, and updates them where needed.
+
+!!! todo
+    Add the script or notebook to `TE macros/TE3 shared/` (named with the day number), list it under `macros`, and add the `??? example` block.
 
 ## More on the solution
 
@@ -31,5 +28,5 @@ te_versions: [TE3]
 
 ## References
 
-!!! todo "Your words"
-    - [Title](url): one line on why it is worth reading.
+- [Prepare your data for AI](https://learn.microsoft.com/power-bi/create-reports/copilot-prepare-data-ai), Microsoft Learn: AI data schemas, verified answers and AI instructions.
+- [Semantic model best practices for data agent](https://learn.microsoft.com/fabric/data-science/semantic-model-best-practices), Microsoft Learn: how Prep for AI settings affect a Fabric data agent.

@@ -1,6 +1,7 @@
 ---
 draft: true
 publish: 2026-12-24
+icon: lucide/brush-cleaning
 video_seconds: 45
 te_versions: [TE3]
 ---
@@ -11,18 +12,14 @@ te_versions: [TE3]
 
 ## The challenge
 
-!!! todo "Your words"
-    What everyday problem does this solve? 2-4 sentences.
-
-!!! warning "Be aware"
-    !!! todo
-        Based on another solution? Destructive? Requirements? Delete this box if not needed.
+Models grow, and measures that nobody uses make it harder to find the right one. Cleaning before Christmas.
 
 ## The solution
 
-!!! todo "Your words"
-    What the code does, in steps or bullets. Calendar door 24: cleaning before Christmas.
-    Add the file to the repo, list it under `macros` and add the `??? example` block when ready.
+The macro organizes the measures in display folders based on usage, using the dependencies from days 20 to 22, so unused measures are easy to review and remove.
+
+!!! todo
+    Add the script or notebook to `TE macros/TE3 shared/` (named with the day number), list it under `macros`, and add the `??? example` block.
 
 ## More on the solution
 

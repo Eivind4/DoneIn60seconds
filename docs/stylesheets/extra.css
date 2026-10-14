@@ -123,6 +123,14 @@
   font-weight: 700;
   line-height: 1;
 }
+.md-typeset .advent__icon {
+  position: absolute;
+  top: 0.7rem;
+  right: 0.7rem;
+  font-size: 1.3rem;
+  line-height: 1;
+  opacity: 0.8;
+}
 .md-typeset .advent__title {
   font-size: 0.7rem;
   line-height: 1.3;

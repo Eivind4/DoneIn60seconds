@@ -1,6 +1,7 @@
 ---
 draft: true
-publish: 2026-12-08
+publish: 2026-12-09
+icon: lucide/calendar-x-2
 video_seconds: 45
 te_versions: [TE3]
 ---
@@ -11,18 +12,14 @@ te_versions: [TE3]
 
 ## The challenge
 
-!!! todo "Your words"
-    What everyday problem does this solve? 2-4 sentences.
-
-!!! warning "Be aware"
-    !!! todo
-        Based on another solution? Destructive? Requirements? Delete this box if not needed.
+Date columns easily end up set up differently across tables and models, for example with different format strings or data types. This is hard to spot by hand, and it shows up as inconsistent reports.
 
 ## The solution
 
-!!! todo "Your words"
-    What the code does, in steps or bullets. BPA rule with a fix expression, or a macro.
-    Add the file to the repo, list it under `macros` and add the `??? example` block when ready.
+A Best Practice Analyzer (BPA) rule detects the inconsistent date columns, and its fix expression corrects them in one go.
+
+!!! todo
+    Add the script or notebook to `TE macros/TE3 shared/` (named with the day number), list it under `macros`, and add the `??? example` block.
 
 ## More on the solution
 
@@ -31,5 +28,5 @@ te_versions: [TE3]
 
 ## References
 
-!!! todo "Your words"
-    - [Title](url): one line on why it is worth reading.
+- [Best Practice Rules](https://github.com/microsoft/Analysis-Services/tree/master/BestPracticeRules), Microsoft on GitHub: the standard BPA rule set for Tabular Editor.
+- [Semantic Link Labs](https://github.com/microsoft/semantic-link-labs), Microsoft on GitHub: run BPA and other model checks from a Fabric notebook.

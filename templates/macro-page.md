@@ -1,6 +1,7 @@
 ---
 draft: true                 # remove this line when the page is ready, then set publish
 # publish: 2026-10-05       # goes live on this date (daily build at 07:00 Oslo)
+icon: lucide/gift           # symbol in the menu and on the calendar door (any lucide icon)
 complexity: Beginner        # Beginner | Intermediate | Advanced
 video_seconds: 45
 te_versions: [TE2, TE3]

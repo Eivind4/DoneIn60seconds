@@ -14,10 +14,10 @@ hide:
 
 | Doors | Theme |
 |---|---|
-| 1–7 | Macros in Tabular Editor for development |
-| 8–11 | AI readiness and BPA |
-| 12–14 | Model management |
-| 15–17 | Model management and PBIR |
-| 18–24 | Macros and PBIR |
+| 1–8 | Macros in Tabular Editor for development |
+| 9–12 | AI readiness and BPA |
+| 13–15 | Model management |
+| 16–18 | Model management and PBIR |
+| 19–24 | Macros and PBIR |
 
 <!-- advent -->

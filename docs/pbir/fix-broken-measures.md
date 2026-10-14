@@ -1,11 +1,12 @@
 ---
 draft: true
-publish: 2026-12-17
+publish: 2026-12-18
+icon: lucide/wrench
 complexity: Intermediate
 video_seconds: 45
 te_versions: [TE3]
 macros:
-  - TE macros/TE3 shared/17 - Detect and repair broken visuals.cs
+  - TE macros/TE3 shared/18 - Detect and repair broken visuals.cs
 ---
 
 # Detect and repair broken visuals
@@ -14,21 +15,18 @@ macros:
 
 ## The challenge
 
-!!! todo "Your words"
-    What everyday problem does this solve? 2-4 sentences.
+When fields are renamed or removed, visuals break, and it is not obvious which reports and pages are affected.
 
 !!! warning "Be aware"
-    !!! todo
-        Based on another solution? Destructive? Requirements? Delete this box if not needed.
+    The macro changes the PBIR files. Save the report in Power BI Desktop first, and keep it in source control so the changes are easy to review and undo.
 
 ## The solution
 
-!!! todo "Your words"
-    What the macro does, in steps or bullets.
+The macro scans the PBIR files for table, column and measure references that do not exist in the model, and lets you repair them.
 
 ??? example "Show the script"
     ```csharp
-    --8<-- "TE macros/TE3 shared/17 - Detect and repair broken visuals.cs"
+    --8<-- "TE macros/TE3 shared/18 - Detect and repair broken visuals.cs"
     ```
 
 ## More on the solution
@@ -38,5 +36,4 @@ macros:
 
 ## References
 
-!!! todo "Your words"
-    - [Title](url): one line on why it is worth reading.
+- [Power BI Desktop project report folder](https://learn.microsoft.com/power-bi/developer/projects/projects-report#pbir-format), Microsoft Learn: the PBIR files that the macros read and change.

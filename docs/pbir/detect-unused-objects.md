@@ -1,6 +1,7 @@
 ---
 draft: true
 publish: 2026-12-20
+icon: lucide/network
 complexity: Intermediate
 video_seconds: 45
 te_versions: [TE3]
@@ -14,17 +15,11 @@ macros:
 
 ## The challenge
 
-!!! todo "Your words"
-    What everyday problem does this solve? 2-4 sentences.
-
-!!! warning "Be aware"
-    !!! todo
-        Based on another solution? Destructive? Requirements? Delete this box if not needed.
+Before changing or cleaning up a model, you need to know which tables, columns and measures are used in reports.
 
 ## The solution
 
-!!! todo "Your words"
-    What the macro does, in steps or bullets.
+The macro reads the PBIR files of the reports and classifies each model object by whether, and where, it is used.
 
 ??? example "Show the script"
     ```csharp
@@ -38,5 +33,4 @@ macros:
 
 ## References
 
-!!! todo "Your words"
-    - [Title](url): one line on why it is worth reading.
+- [Power BI Desktop project report folder](https://learn.microsoft.com/power-bi/developer/projects/projects-report#pbir-format), Microsoft Learn: the PBIR files that the macros read and change.
