@@ -143,7 +143,7 @@ def _videos(markdown: str) -> str:
 
 
 def _page_list(page: Page, pages: dict[str, Page], preview: bool) -> str:
-    """Markdown list of live sibling pages, newest release first."""
+    """Markdown list of live sibling pages in calendar order (publish date); undated pages last."""
     folder = os.path.dirname(page.uri)
     rows = []
     for other in pages.values():
@@ -152,8 +152,8 @@ def _page_list(page: Page, pages: dict[str, Page], preview: bool) -> str:
         if other.hidden and not preview:
             continue
         extra = f" · {other.meta['complexity']}" if other.meta.get("complexity") else ""
-        rows.append((str(other.publish or ""), f"- [{other.title}]({other.path.name}){extra}"))
-    rows.sort(reverse=True)
+        rows.append((str(other.publish or "9999"), f"- [{other.title}]({other.path.name}){extra}"))
+    rows.sort()
     return "\n".join(r for _, r in rows) or "*First page coming soon.*"
 
 

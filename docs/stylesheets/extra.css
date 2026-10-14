@@ -136,9 +136,12 @@
   line-height: 1.3;
 }
 .md-typeset a.advent__door.is-open {
-  color: var(--brand-charcoal);
-  background: linear-gradient(135deg, var(--brand-yellow), var(--brand-amber));
+  color: #fff;
+  background: linear-gradient(135deg, var(--xmas-red), var(--xmas-red-dark));
   border-color: transparent;
+}
+.md-typeset a.advent__door.is-open .advent__day {
+  color: var(--brand-yellow);
 }
 .md-typeset a.advent__door:hover {
   transform: translateY(-2px);
@@ -146,13 +149,14 @@
   color: inherit;
 }
 .md-typeset a.advent__door.is-open:hover {
-  color: var(--brand-charcoal);
+  color: #fff;
 }
+/* Locked doors: candy-cane stripes */
 .md-typeset .advent__door.is-locked {
   background: repeating-linear-gradient(
     -45deg,
     transparent 0 0.6rem,
-    var(--md-default-fg-color--lightest) 0.6rem 0.65rem
+    var(--xmas-stripe) 0.6rem 1.2rem
   );
 }
 .md-typeset .advent__door.is-locked .advent__title,
@@ -161,12 +165,46 @@
 }
 .md-typeset a.advent__door.is-planned {
   border-style: dashed;
-  border-color: var(--brand-amber);
+  border-color: var(--xmas-green);
+}
+.md-typeset a.advent__door.is-planned .advent__icon {
+  color: var(--xmas-green);
 }
 .md-typeset .advent__door.is-empty {
   border-style: dashed;
 }
 .md-typeset .advent__door.is-today {
-  outline: 2px solid var(--brand-amber);
+  outline: 2px solid var(--brand-yellow);
   outline-offset: 2px;
 }
+
+/* Christmas calendar: header drawing (Santa on a sledge behind the logo car) */
+:root {
+  --xmas-red: #c62828;
+  --xmas-red-dark: #8e1b1b;
+  --xmas-green: #2e7d32;
+  --xmas-stripe: #c628281f;
+  --xmas-sky: #dcebf7;
+  --xmas-ground: #ffffff;
+}
+[data-md-color-scheme="slate"] {
+  --xmas-green: #66bb6a;
+  --xmas-stripe: #ef53502e;
+  --xmas-sky: #1d2733;
+  --xmas-ground: #e8eef3;
+}
+.md-typeset .xmas-hero {
+  display: block;
+  width: 100%;
+  max-width: none;
+  margin: 0 0 1.5rem;
+}
+.md-typeset .xmas-hero svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 15rem;
+}
+.xmas-sky { fill: var(--xmas-sky); }
+.xmas-ground { fill: var(--xmas-ground); }
+.xmas-snow { fill: #fff; }

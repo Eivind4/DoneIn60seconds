@@ -23,11 +23,13 @@ It has many features that help you in your daily work with semantic models, but 
 
 - Using C# scripts to solve common challenges.
 
-This series is not about how to create C# scripts. AI is great at C# scripting; I am not.
+Some challenges are solved with code in Fabric notebooks instead, for example with Semantic Link Labs.
+
+This series is not about how to create C# scripts or notebook code. AI is great at writing code; I am not.
 But you get very far by understanding what you can solve, having a good understanding of the metadata,
 and testing the result. You gain the metadata understanding by using Tabular Editor or TMDL, where you can
 see the properties, including some that are hidden in the Power BI user interface.
-Once a script works, the output is the same every time: it is deterministic.
+Once a script or notebook works, the output is the same every time: it is deterministic.
 
 The series does not explain general concepts, but links to articles where applicable. The goal of the series
 is not only to solve common challenges in Power BI, but to solve them within 60 seconds, in every model.
@@ -65,6 +67,14 @@ is not only to solve common challenges in Power BI, but to solve them within 60 
     Automate fixes for Best Practice Analyzer findings.
 
     [:octicons-arrow-right-24: Browse](best-practice-rules/index.md)
+
+-   :material-robot-outline: **AI readiness**
+
+    ---
+
+    Check and prepare semantic models for Copilot and data agents.
+
+    [:octicons-arrow-right-24: Browse](ai-readiness/index.md)
 
 -   :material-sitemap: **Master model**
 
