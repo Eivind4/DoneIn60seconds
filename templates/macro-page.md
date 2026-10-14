@@ -5,7 +5,7 @@ complexity: Beginner        # Beginner | Intermediate | Advanced
 video_seconds: 45
 te_versions: [TE2, TE3]
 macros:
-  - TE macros/TE3/<file>.cs
+  - TE macros/TE3 shared/<day> - <name>.cs
 ---
 
 # <Macro title>
@@ -29,7 +29,7 @@ macros:
 
 ??? example "Show the script"
     ```csharp
-    --8<-- "TE macros/TE3/<file>.cs"
+    --8<-- "TE macros/TE3 shared/<day> - <name>.cs"
     ```
 
 ## More on the solution

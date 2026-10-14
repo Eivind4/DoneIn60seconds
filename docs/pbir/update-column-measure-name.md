@@ -5,7 +5,7 @@ complexity: Intermediate
 video_seconds: 45
 te_versions: [TE3]
 macros:
-  - TE macros/TE3/15 - Batch replace PBIR table column and measure references.cs
+  - TE macros/TE3 shared/15 - Rename tables and measures.cs
 ---
 
 # Rename tables and measures
@@ -28,7 +28,7 @@ macros:
 
 ??? example "Show the script"
     ```csharp
-    --8<-- "TE macros/TE3/15 - Batch replace PBIR table column and measure references.cs"
+    --8<-- "TE macros/TE3 shared/15 - Rename tables and measures.cs"
     ```
 
 ## More on the solution

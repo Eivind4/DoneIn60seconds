@@ -5,7 +5,7 @@ complexity: Beginner
 video_seconds: 45
 te_versions: [TE3]
 macros:
-  - TE macros/TE3/12 - Set display names for selected fields in PBIR.cs
+  - TE macros/TE3 shared/18 - Set display names.cs
 ---
 
 # Set display names
@@ -28,7 +28,7 @@ macros:
 
 ??? example "Show the script"
     ```csharp
-    --8<-- "TE macros/TE3/12 - Set display names for selected fields in PBIR.cs"
+    --8<-- "TE macros/TE3 shared/18 - Set display names.cs"
     ```
 
 ## More on the solution

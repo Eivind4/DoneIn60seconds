@@ -5,8 +5,8 @@ complexity: Intermediate
 video_seconds: 45
 te_versions: [TE3]
 macros:
-  - TE macros/TE3/5 - Generate Time Intelligence DaxUDF.cs
-  - TE macros/TE3/3 - Time Intelligence - Calculation group.cs
+  - TE macros/TE3 shared/02 - Create time intelligence DaxUDF.cs
+  - TE macros/TE3 shared/02 - Time intelligence calculation group.cs
 ---
 
 # Create time intelligence
@@ -30,7 +30,7 @@ macros:
 
 ??? example "Show the script"
     ```csharp
-    --8<-- "TE macros/TE3/5 - Generate Time Intelligence DaxUDF.cs"
+    --8<-- "TE macros/TE3 shared/02 - Create time intelligence DaxUDF.cs"
     ```
 
 ## More on the solution
@@ -39,6 +39,9 @@ macros:
     Design choices, limitations, alternatives and similar scripts.
 
 ## References
+
+- [Introducing calendar-based time intelligence in DAX](https://www.sqlbi.com/articles/introducing-calendar-based-time-intelligence-in-dax/),
+  SQLBI: the calendar-based time intelligence functions that the DaxUDFs build on.
 
 !!! todo "Your words"
     - [Title](url): one line on why it is worth reading.

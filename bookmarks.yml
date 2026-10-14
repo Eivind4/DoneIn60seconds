@@ -20,3 +20,24 @@ articles:
   #   topics: [DAX]
   #   added: 2026-10-13
   #   note: Why I saved it
+
+  - title: Building CI/CD maturity for report development
+    url: https://tabulareditor.com/blog/building-ci-cd-maturity-for-report-development
+    author: Eugene Meidinger
+    topics: [CI/CD]
+    added: 2026-10-15
+  - title: An introduction to calendar-based time intelligence in Power BI – with Tabular Editor 3
+    url: https://tabulareditor.com/resources/upcoming-and-on-demand-events/on-demand-webinar-calendar-based-time-intelligence
+    author: Tabular Editor (webinar)
+    topics: [Time intelligence]
+    added: 2026-10-15
+  - title: Introducing calendar-based time intelligence in DAX
+    url: https://www.sqlbi.com/articles/introducing-calendar-based-time-intelligence-in-dax/
+    author: Marco Russo & Alberto Ferrari
+    topics: [Time intelligence, DAX]
+    added: 2026-10-15
+  - title: Calendars (Enhanced Time Intelligence)
+    url: https://docs.tabulareditor.com/en/tutorials/calendars.html
+    author: Tabular Editor docs
+    topics: [Time intelligence, Tabular Editor]
+    added: 2026-10-15

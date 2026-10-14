@@ -5,7 +5,7 @@ complexity: Beginner
 video_seconds: 45
 te_versions: [TE3]
 macros:
-  - TE macros/TE3/5 - Create Ranking DaxUDF.cs
+  - TE macros/TE3 shared/05 - Ranking DaxUDF.cs
 ---
 
 # Ranking
@@ -28,7 +28,7 @@ macros:
 
 ??? example "Show the script"
     ```csharp
-    --8<-- "TE macros/TE3/5 - Create Ranking DaxUDF.cs"
+    --8<-- "TE macros/TE3 shared/05 - Ranking DaxUDF.cs"
     ```
 
 ## More on the solution

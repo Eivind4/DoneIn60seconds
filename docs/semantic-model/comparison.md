@@ -5,7 +5,7 @@ complexity: Beginner
 video_seconds: 45
 te_versions: [TE3]
 macros:
-  - TE macros/TE3/5 - Compare first selected measure with second selected measure.cs
+  - TE macros/TE3 shared/04 - Comparison DaxUDF.cs
 ---
 
 # Comparison
@@ -28,7 +28,7 @@ macros:
 
 ??? example "Show the script"
     ```csharp
-    --8<-- "TE macros/TE3/5 - Compare first selected measure with second selected measure.cs"
+    --8<-- "TE macros/TE3 shared/04 - Comparison DaxUDF.cs"
     ```
 
 ## More on the solution

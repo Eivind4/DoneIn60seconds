@@ -5,7 +5,7 @@ complexity: Intermediate
 video_seconds: 45
 te_versions: [TE3]
 macros:
-  - TE macros/TE3/5 - Create measure from model dependent functions.cs
+  - TE macros/TE3 shared/03 - Create measures from model dependent DaxUDF.cs
 ---
 
 # Measures with time intelligence
@@ -28,7 +28,7 @@ macros:
 
 ??? example "Show the script"
     ```csharp
-    --8<-- "TE macros/TE3/5 - Create measure from model dependent functions.cs"
+    --8<-- "TE macros/TE3 shared/03 - Create measures from model dependent DaxUDF.cs"
     ```
 
 ## More on the solution

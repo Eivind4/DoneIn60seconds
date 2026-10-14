@@ -5,7 +5,7 @@ complexity: Advanced
 video_seconds: 45
 te_versions: [TE3]
 macros:
-  - TE macros/TE3/18 - Master model - create or update perspective models.cs
+  - TE macros/TE3 shared/12 - Master model perspectives.cs
 ---
 
 # Create model from perspective
@@ -28,7 +28,7 @@ macros:
 
 ??? example "Show the script"
     ```csharp
-    --8<-- "TE macros/TE3/18 - Master model - create or update perspective models.cs"
+    --8<-- "TE macros/TE3 shared/12 - Master model perspectives.cs"
     ```
 
 ## More on the solution

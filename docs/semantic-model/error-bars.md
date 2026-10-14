@@ -5,7 +5,7 @@ complexity: Intermediate
 video_seconds: 45
 te_versions: [TE3]
 macros:
-  - TE macros/TE3/5 - Create Error bars DaxUDF.cs
+  - TE macros/TE3 shared/06 - Error bars DaxUDF.cs
 ---
 
 # Error bars
@@ -28,7 +28,7 @@ macros:
 
 ??? example "Show the script"
     ```csharp
-    --8<-- "TE macros/TE3/5 - Create Error bars DaxUDF.cs"
+    --8<-- "TE macros/TE3 shared/06 - Error bars DaxUDF.cs"
     ```
 
 ## More on the solution

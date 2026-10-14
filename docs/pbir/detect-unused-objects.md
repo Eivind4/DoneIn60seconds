@@ -5,7 +5,7 @@ complexity: Intermediate
 video_seconds: 45
 te_versions: [TE3]
 macros:
-  - TE macros/TE3/16 - Classify model dependencies from PBIR.cs
+  - TE macros/TE3 shared/20 - Classify model dependencies.cs
 ---
 
 # Classify model dependencies: report dependency
@@ -28,7 +28,7 @@ macros:
 
 ??? example "Show the script"
     ```csharp
-    --8<-- "TE macros/TE3/16 - Classify model dependencies from PBIR.cs"
+    --8<-- "TE macros/TE3 shared/20 - Classify model dependencies.cs"
     ```
 
 ## More on the solution

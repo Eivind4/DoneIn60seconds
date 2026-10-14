@@ -5,7 +5,7 @@ complexity: Intermediate
 video_seconds: 45
 te_versions: [TE3]
 macros:
-  - TE macros/TE3/14 - Detect and repair broken PBIR references.cs
+  - TE macros/TE3 shared/17 - Detect and repair broken visuals.cs
 ---
 
 # Detect and repair broken visuals
@@ -28,7 +28,7 @@ macros:
 
 ??? example "Show the script"
     ```csharp
-    --8<-- "TE macros/TE3/14 - Detect and repair broken PBIR references.cs"
+    --8<-- "TE macros/TE3 shared/17 - Detect and repair broken visuals.cs"
     ```
 
 ## More on the solution

@@ -29,11 +29,12 @@
 
 /* Header: tagline after the site name; hidden on narrow screens. Logo B is wider than tall. */
 .header-tagline {
+  font-size: 0.8em;
   font-weight: 400;
   opacity: 0.65;
   margin-left: 0.6rem;
 }
-@media screen and (max-width: 60em) {
+@media screen and (max-width: 76.25em) {
   .header-tagline { display: none; }
 }
 .md-header__button.md-logo img {

@@ -5,7 +5,7 @@ complexity: Intermediate
 video_seconds: 45
 te_versions: [TE3]
 macros:
-  - TE macros/TE3/11 - Rename measures (TOM + PBIR sync).cs
+  - TE macros/TE3 shared/16 - Batch rename measures.cs
 ---
 
 # Batch rename measures
@@ -28,7 +28,7 @@ macros:
 
 ??? example "Show the script"
     ```csharp
-    --8<-- "TE macros/TE3/11 - Rename measures (TOM + PBIR sync).cs"
+    --8<-- "TE macros/TE3 shared/16 - Batch rename measures.cs"
     ```
 
 ## More on the solution

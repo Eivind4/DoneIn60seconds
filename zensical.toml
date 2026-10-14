@@ -28,7 +28,7 @@ nav = [
   ] },
   { "Semantic model" = [
     "semantic-model/index.md",
-    { "Create a calendar" = "semantic-model/create-calendar.md" },
+    { "Create a date table" = "semantic-model/create-calendar.md" },
     { "Create time intelligence" = "semantic-model/create-time-intelligence.md" },
     { "Measures with time intelligence" = "semantic-model/measures-with-time-intelligence.md" },
     { "Dynamic axis" = "semantic-model/dynamic-axis.md" },

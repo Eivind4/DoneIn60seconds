@@ -30,7 +30,7 @@ Eivind writes every sentence. You are the **copy editor**:
 - Reading list: `bookmarks.yml` (blogs and articles). Preview only, unless an entry has `public: true`.
 - Videos: `![caption](../assets/videos/<name>.mp4)` becomes a player. Keep clips < 60 s, 720p, < 20 MB.
 - Images: `docs/assets/images/`, always with meaningful alt text.
-- Show a macro's code with `--8<-- "TE macros/TE3/<file>.cs"` inside a collapsed `??? example` block.
+- Show a macro's code with `--8<-- "TE macros/TE3 shared/<day> - <name>.cs"` inside a collapsed `??? example` block.
 
 ## Release gate
 
