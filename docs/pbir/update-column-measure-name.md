@@ -18,7 +18,7 @@ macros:
 Renaming a table, column or measure in the model breaks the visuals that use it in the reports built on the model.
 
 !!! warning "Be aware"
-    The macro changes the PBIR files. Save the report in Power BI Desktop first, and keep it in source control so the changes are easy to review and undo.
+    The macro changes the PBIR files. The reports are often thin reports, live connected to the semantic model in the service, so make sure the model in the service has the same changes as the model you work on. Keep the reports in source control so the changes are easy to review and undo.
 
 ## The solution
 

@@ -47,7 +47,7 @@ VIDEO = re.compile(r"!\[([^\]]*)\]\(([^)\s]+\.mp4)\)")
 
 AI_FOOTER = (
     "\n\n---\n\n<p class=\"ai-note\">Written by Eivind Haugen. "
-    "AI was used for formatting and spell checking only, not for writing the content.</p>\n"
+    "AI was used for formatting and spell checking, and drafted parts of the text.</p>\n"
 )
 
 
