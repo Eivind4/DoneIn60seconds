@@ -130,13 +130,22 @@ def _macro_buttons(config: dict, meta: dict) -> str:
     return "\n".join(buttons) + "\n" if buttons else ""
 
 
-def _videos(markdown: str) -> str:
+def _videos(markdown: str, page: Page) -> str:
     # ![caption](clip.mp4) -> inline player. Zensical rewrites the relative src for directory URLs.
+    # Optional files next to the clip: clip.vtt (captions, shown by default), clip.jpg/.png (poster).
     def player(match: re.Match) -> str:
         caption, src = match.groups()
+        clip = (page.path.parent / src).resolve()
+        poster = next((ext for ext in (".jpg", ".png") if clip.with_suffix(ext).exists()), None)
+        # Zensical does not rewrite poster, so add the extra ../ for the directory URL ourselves
+        up = "" if page.path.name == "index.md" or "://" in src or src.startswith("/") else "../"
+        poster_attr = f' poster="{up}{src[:-4]}{poster}"' if poster else ""
+        track = ""
+        if clip.with_suffix(".vtt").exists():
+            track = f'<track kind="captions" src="{src[:-4]}.vtt" srclang="en" label="English" default>'
         return (
-            f'<figure class="video"><video controls muted playsinline preload="metadata" '
-            f'title="{caption}"><source src="{src}" type="video/mp4"></video></figure>'
+            f'<figure class="video"><video controls muted playsinline preload="metadata"{poster_attr} '
+            f'title="{caption}"><source src="{src}" type="video/mp4">{track}</video></figure>'
         )
 
     return VIDEO.sub(player, markdown)
@@ -218,7 +227,7 @@ def _transform(page: Page, pages: dict[str, Page], config: dict, preview: bool) 
         lines.insert(h1 + 1, "\n" + header)
         markdown = "\n".join(lines)
 
-    markdown = _videos(markdown)
+    markdown = _videos(markdown, page)
     if not page.meta.get("hide_ai_note"):
         markdown += AI_FOOTER
 

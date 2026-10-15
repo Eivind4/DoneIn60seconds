@@ -76,6 +76,14 @@
   box-shadow: var(--md-shadow-z2);
 }
 
+/* Captions from <clip>.vtt: readable on a busy Tabular Editor screen */
+.md-typeset figure.video video::cue {
+  font-size: 0.85em;
+  line-height: 1.4;
+  color: #fff;
+  background: rgba(37, 36, 35, 0.85);
+}
+
 .md-typeset .ai-note {
   font-size: 0.7rem;
   color: var(--md-default-fg-color--light);

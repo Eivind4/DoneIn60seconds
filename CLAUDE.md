@@ -29,6 +29,8 @@ Eivind writes every sentence. You are the **copy editor**:
   (year in `extra.advent` in `zensical.toml`). Placeholders: `<!-- advent -->`, `<!-- pages -->`.
 - Reading list: `bookmarks.yml` (blogs and articles). Preview only, unless an entry has `public: true`.
 - Videos: `![caption](../assets/videos/<name>.mp4)` becomes a player. Keep clips < 60 s, 720p, < 20 MB.
+  No voice: captions go in `<name>.vtt` next to the clip (start from `templates/captions.vtt`), and
+  `<name>.jpg`/`.png` becomes the poster. Caption text is Eivind's; you copy-edit and time it.
 - Images: `docs/assets/images/`, always with meaningful alt text.
 - Show a macro's code with `--8<-- "TE macros/TE3 shared/<day> - <name>.cs"` inside a collapsed `??? example` block.
 
