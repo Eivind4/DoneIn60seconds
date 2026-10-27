@@ -264,6 +264,18 @@ def _by_topic(entries: list[dict]) -> str:
     return "\n\n".join(out)
 
 
+PRIVATE_NOTE = '!!! info "Private"\n    Only visible in preview. Edit `bookmarks.yml` to add links.'
+
+
+def _topic_slug(topic: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", topic.casefold()).strip("-") or "other"
+
+
+def _topic_rows(entries: list[dict]) -> str:
+    rows = sorted(entries, key=lambda e: str(e.get("added", "")), reverse=True)
+    return "\n".join(_link_row(e) for e in rows)
+
+
 def _reading_pages(preview: bool) -> dict[str, str]:
     """docs-relative path -> Markdown. Private entries only appear in preview."""
     if not BOOKMARKS.exists():
@@ -273,17 +285,33 @@ def _reading_pages(preview: bool) -> dict[str, str]:
     pages = {}
 
     if preview:
-        unread = [a for a in articles if not a.get("read")]
-        read = [a for a in articles if a.get("read")]
+        topics: dict[str, list[dict]] = {}
+        for article in articles:
+            for topic in article.get("topics") or ["Other"]:
+                topics.setdefault(topic, []).append(article)
+
+        index = []
+        for topic in sorted(topics, key=str.casefold):
+            unread = sum(not a.get("read") for a in topics[topic])
+            index.append(f"- [{topic}]({_topic_slug(topic)}.md) · {unread} to read")
+            unread_rows = _topic_rows([a for a in topics[topic] if not a.get("read")])
+            read_rows = _topic_rows([a for a in topics[topic] if a.get("read")])
+            md = [
+                f"---\nhide_ai_note: true\n---\n\n# {topic}",
+                PRIVATE_NOTE,
+                "## To read\n\n" + (unread_rows or "*Nothing left.*"),
+            ]
+            if read_rows:
+                md.append("## Read\n\n" + read_rows)
+            pages[f"reading-list/{_topic_slug(topic)}.md"] = "\n\n".join(md) + "\n"
+
         md = [
             "---\nhide_ai_note: true\n---\n\n# Reading list",
-            '!!! info "Private"\n    Only visible in preview. Edit `bookmarks.yml` to add links.',
+            PRIVATE_NOTE,
+            "## Topics\n\n" + ("\n".join(index) or "*None yet.*"),
             "## Blogs to follow\n\n" + (_by_topic(blogs) or "*None yet.*"),
-            "## To read\n\n" + (_by_topic(unread) or "*None yet.*"),
         ]
-        if read:
-            md.append("## Read\n\n" + _by_topic(read))
-        pages["reading-list.md"] = "\n\n".join(md) + "\n"
+        pages["reading-list/index.md"] = "\n\n".join(md) + "\n"
 
     shared = [b for b in blogs if b.get("public")] + [a for a in articles if a.get("public")]
     if shared:
@@ -322,9 +350,12 @@ def _config(source: dict, keep: set[str], extra_pages: dict[str, str]) -> dict:
     config["theme"] = theme
 
     nav = list(config.get("nav", []))
-    for path, title in (("worth-following.md", "Worth following"), ("reading-list.md", "Reading list")):
-        if path in extra_pages:
-            nav.append({title: path})
+    if "worth-following.md" in extra_pages:
+        nav.append({"Worth following": "worth-following.md"})
+    reading = sorted(p for p in extra_pages if p.startswith("reading-list/") and p != "reading-list/index.md")
+    if "reading-list/index.md" in extra_pages:
+        topics = [{extra_pages[p].split("\n# ", 1)[1].split("\n", 1)[0]: p} for p in reading]
+        nav.append({"Reading list": ["reading-list/index.md", *topics]})
     config["nav"] = _prune_nav(nav, keep)
 
     md = dict(config.get("markdown_extensions", {}))

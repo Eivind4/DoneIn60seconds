@@ -1,6 +1,7 @@
 # Reading list: blogs to follow and articles to keep.
 #
-# Everything here is shown on the "Reading list" page in local preview only (python build.py serve),
+# Everything here is shown in the "Reading list" section in local preview only (python build.py serve),
+# with one subpage per topic (an entry with several topics appears on each of them),
 # never on the published site. Add `public: true` to an entry to also list it on the public
 # "Worth following" page.
 # Note: this repository is public on GitHub, so this file itself can be read by anyone.
@@ -41,3 +42,92 @@ articles:
     author: Tabular Editor docs
     topics: [Time intelligence, Tabular Editor]
     added: 2026-10-15
+
+  - title: DAXBench (DAX LLM benchmark)
+    url: https://www.daxbench.com/
+    author: Maxim Anatsko with SQLBI
+    topics: [AI agents and skills]
+    added: 2026-10-27
+  - title: "fabricstack: tools for Microsoft Fabric"
+    url: https://fabricstack.dev/
+    topics: [Tools]
+    added: 2026-10-27
+  - title: fabric-notebook-toolkit
+    url: https://pypi.org/project/fabric-notebook-toolkit/
+    author: Microsoft (PyPI)
+    topics: [Tools]
+    added: 2026-10-27
+  - title: Unit testing semantic models with DAX
+    url: https://daxnoob.blog/semantic-model-dax-testing/
+    author: Justin Martin
+    topics: [CI/CD, Unit testing]
+    added: 2026-10-27
+  - title: FabricOps
+    url: https://github.com/gronnerup/FabricOps
+    author: Peer Grønnerup (GitHub)
+    topics: [CI/CD]
+    added: 2026-10-27
+  - title: Fabric CI/CD – two different worlds
+    url: https://evaluationcontext.com/posts/fabric-cicd-two-worlds/#mixed-messages
+    author: Jake Duddy
+    topics: [CI/CD]
+    added: 2026-10-27
+  - title: "New CI/CD resources for Microsoft Fabric: from concepts to end-to-end automation"
+    url: https://community.fabric.microsoft.com/blog/fbc_fabricupdatesblogs/new-cicd-resources-for-microsoft-fabric-from-concepts-to-end-to-end-automation/5358502
+    author: Fabric Community blog
+    topics: [CI/CD]
+    added: 2026-10-27
+  - title: Power BI agentic authoring – building semantic models and reports with AI
+    url: https://www.youtube.com/watch?v=A-nlLCbpEp4
+    author: YouTube
+    topics: [Conversational BI]
+    added: 2026-10-27
+  - title: Semantic model best practices for data agent
+    url: https://learn.microsoft.com/en-us/fabric/data-science/semantic-model-best-practices
+    author: Microsoft Learn
+    topics: [Conversational BI]
+    added: 2026-10-27
+  - title: Getting started with data agents (Fabric data agent workshop)
+    url: https://github.com/microsoft/fabric-data-agent-workshop
+    author: Sandeep Pawar
+    topics: [Conversational BI]
+    added: 2026-10-27
+  - title: Luca Zavarella on Fabric Data Agent
+    url: https://fabricdataagent.com/contributors/luca-zavarella/
+    author: Luca Zavarella
+    topics: [Conversational BI]
+    added: 2026-10-27
+  - title: "Can you trust your Fabric data agent? Programmatically testing accuracy and determinism"
+    url: https://data-marc.com/2026/10/27/can-you-trust-your-fabric-data-agent-programmatically-testing-accuracy-and-determinism/
+    author: Marc (Data – Marc)
+    topics: [Conversational BI]
+    added: 2026-10-27
+  - title: "How to prepare a Power BI semantic model for Copilot: a practical checklist"
+    url: https://bipixie.com/blog/prepare-semantic-model-for-copilot
+    author: BI Pixie
+    topics: [Conversational BI]
+    added: 2026-10-27
+  - title: fab-test-playwright-templates
+    url: https://github.com/clientfirsttech/fab-test-playwright-templates
+    author: John Kerski
+    topics: [CI/CD]
+    added: 2026-10-27
+  - title: fab-test
+    url: https://www.pqlint.com/fab-test
+    author: Client First Tech
+    topics: [CI/CD]
+    added: 2026-10-27
+  - title: "Fabric app functions to use secure server-side custom logic (preview)"
+    url: https://community.fabric.microsoft.com/blog/fbc_fabricupdatesblogs/fabric-app-functions-to-use-secure-server-side-custom-logic-preview/5368691
+    author: Fabric Community blog
+    topics: [Fabric Apps]
+    added: 2026-10-27
+  - title: "anyplot.ai: the open plot catalogue"
+    url: https://anyplot.ai/
+    topics: [Visual inspiration]
+    added: 2026-10-27
+  - title: Why I built Skill Vault
+    url: https://promptingbi.com/2026/10/08/why-i-built-skill-vault/
+    author: Tommy Puglia
+    topics: [AI agents and skills]
+    added: 2026-10-27

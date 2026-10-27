@@ -27,7 +27,7 @@ Eivind writes every sentence. You are the **copy editor**:
 - The reading-time strip, macro buttons and AI footer are injected by `build.py`; leave them out of the markdown.
 - Christmas calendar: `docs/calendar.md` fills door N from the page with `publish: <year>-12-N`
   (year in `extra.advent` in `zensical.toml`). Placeholders: `<!-- advent -->`, `<!-- pages -->`.
-- Reading list: `bookmarks.yml` (blogs and articles). Preview only, unless an entry has `public: true`.
+- Reading list: `bookmarks.yml` (blogs and articles), one subpage per topic. Preview only, unless an entry has `public: true`.
 - Videos: `![caption](../assets/videos/<name>.mp4)` becomes a player. Keep clips < 60 s, 720p, < 20 MB.
   No voice: captions go in `<name>.vtt` next to the clip (start from `templates/captions.vtt`), and
   `<name>.jpg`/`.png` becomes the poster. Caption text is Eivind's; you copy-edit and time it.
