@@ -9,16 +9,15 @@
 // properly formatted names, display folders, and metadata based on function annotations.
 //
 // HOW TO USE:
-// 1. Select one or more base measures in your model
-// 2. Run the script
-// 3. Select one or more single-parameter functions from the dialog (functions starting with 
-//    "Local" will be shown)
+// 1. Select one or more base measures in your model (optionally also the functions to apply)
+// 2. Run the script. If no measures are selected, pick them from a list (grouped by table)
+// 3. If no functions are selected, select one or more single-parameter functions from the dialog
 // 4. If functions are missing annotations, you'll be prompted to provide measure and folder 
 //    suffixes (once per function)
 // 5. New measures will be created for each combination of selected measure + function
 //
 // REQUIREMENTS:
-// - Select at least one measure before running the script
+// - At least one base measure, selected before running or picked from the list
 // - Functions must have exactly ONE parameter (multi-parameter functions are filtered out)
 // - Functions should ideally have the required annotations (see below)
 //
@@ -122,13 +121,157 @@ int CountFunctionParameters(Function function)
     return validCount;
 }
 
+// STEP 0: Base measures. Use the selected measures; if none are selected, pick them from a list
+// (table > measure, with checkboxes and a search box). At least one measure is required.
+List<Measure> baseMeasures = Selected.Measures.ToList();
+
+if (!baseMeasures.Any())
+{
+    var allMeasures = Model.AllMeasures.OrderBy(m => m.Table.Name).ThenBy(m => m.Name).ToList();
+    if (!allMeasures.Any())
+    {
+        Error("No measures found in the model. Create or select one or more base measures first.");
+        return;
+    }
+
+    var workingAreaM = Screen.PrimaryScreen.WorkingArea;
+    Form measureForm = new Form {
+        Text = "Select Base Measures",
+        Size = new Size(Math.Min(720, (int)(workingAreaM.Width * 0.6)), (int)(workingAreaM.Height * 0.8)),
+        MinimumSize = new Size(480, 420),
+        StartPosition = FormStartPosition.CenterScreen,
+        FormBorderStyle = FormBorderStyle.Sizable,
+        MaximizeBox = true,
+        MinimizeBox = false,
+        Font = new Font("Segoe UI", 9)
+    };
+    var measureLayout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 5, Padding = new Padding(12) };
+    measureLayout.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+    measureLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+    measureLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+    measureLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+    measureLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+    measureLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+    measureLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+    measureForm.Controls.Add(measureLayout);
+
+    Label measureLabel = new Label {
+        Text = "No measures were selected. Select one or more base measures (check a table to select all its measures):",
+        AutoSize = true, MaximumSize = new Size(900, 0), Margin = new Padding(0, 0, 0, 8),
+        Font = new Font("Segoe UI", 10, FontStyle.Bold)
+    };
+    Label measureSearchLabel = new Label { Text = "Search:", AutoSize = true, Anchor = AnchorStyles.Left, Margin = new Padding(0, 6, 8, 8) };
+    TextBox measureSearchBox = new TextBox { Dock = DockStyle.Fill, Margin = new Padding(0, 2, 0, 8) };
+    TreeView measureTree = new TreeView { Dock = DockStyle.Fill, CheckBoxes = true, HideSelection = false };
+    Label measureStatus = new Label { Text = "0 measure(s) selected", AutoSize = true, ForeColor = Color.DimGray, Margin = new Padding(0, 6, 0, 0) };
+    Button measureOkButton = new Button { Text = "Continue", AutoSize = true, Margin = new Padding(0, 0, 8, 0) };
+    Button measureCancelButton = new Button { Text = "Cancel", AutoSize = true, DialogResult = DialogResult.Cancel };
+    var measureButtons = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, Margin = new Padding(0, 8, 0, 0) };
+    measureButtons.Controls.Add(measureOkButton);
+    measureButtons.Controls.Add(measureCancelButton);
+
+    measureLayout.Controls.Add(measureLabel, 0, 0);
+    measureLayout.SetColumnSpan(measureLabel, 2);
+    measureLayout.Controls.Add(measureSearchLabel, 0, 1);
+    measureLayout.Controls.Add(measureSearchBox, 1, 1);
+    measureLayout.Controls.Add(measureTree, 0, 2);
+    measureLayout.SetColumnSpan(measureTree, 2);
+    measureLayout.Controls.Add(measureStatus, 0, 3);
+    measureLayout.SetColumnSpan(measureStatus, 2);
+    measureLayout.Controls.Add(measureButtons, 0, 4);
+    measureLayout.SetColumnSpan(measureButtons, 2);
+
+    // Checked measures (by DAX object name), kept across search-filter rebuilds of the tree
+    var checkedMeasureNames = new HashSet<string>();
+    bool suppressMeasureEvents = false;
+
+    // (Re)builds the tree from the measures whose name or table matches the search text
+    Action<string> RebuildMeasureTree = (filterText) =>
+    {
+        suppressMeasureEvents = true;
+        measureTree.BeginUpdate();
+        measureTree.Nodes.Clear();
+
+        var filtered = allMeasures
+            .Where(m => string.IsNullOrWhiteSpace(filterText) ||
+                        m.Name.IndexOf(filterText, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                        m.Table.Name.IndexOf(filterText, StringComparison.OrdinalIgnoreCase) >= 0);
+
+        foreach (var tableGroup in filtered.GroupBy(m => m.Table.Name))
+        {
+            var tableNode = new TreeNode(tableGroup.Key);
+            foreach (var m in tableGroup)
+            {
+                var node = new TreeNode(m.Name) { Tag = m, Checked = checkedMeasureNames.Contains(m.DaxObjectFullName) };
+                tableNode.Nodes.Add(node);
+            }
+            tableNode.Checked = tableNode.Nodes.Cast<TreeNode>().All(n => n.Checked);
+            measureTree.Nodes.Add(tableNode);
+        }
+
+        measureTree.ExpandAll();
+        measureTree.EndUpdate();
+        suppressMeasureEvents = false;
+    };
+
+    RebuildMeasureTree("");
+    measureSearchBox.TextChanged += (s, e) => RebuildMeasureTree(measureSearchBox.Text);
+
+    measureTree.AfterCheck += (s, e) =>
+    {
+        if (suppressMeasureEvents) return;
+        suppressMeasureEvents = true;
+
+        // A table node checks/unchecks all its measures; a measure node updates its table node
+        var leaves = e.Node.Tag is Measure ? new[] { e.Node } : e.Node.Nodes.Cast<TreeNode>().ToArray();
+        foreach (var leaf in leaves)
+        {
+            leaf.Checked = e.Node.Checked;
+            var m = (Measure)leaf.Tag;
+            if (leaf.Checked) checkedMeasureNames.Add(m.DaxObjectFullName);
+            else checkedMeasureNames.Remove(m.DaxObjectFullName);
+        }
+        if (e.Node.Parent != null)
+            e.Node.Parent.Checked = e.Node.Parent.Nodes.Cast<TreeNode>().All(n => n.Checked);
+
+        suppressMeasureEvents = false;
+        measureStatus.Text = checkedMeasureNames.Count + " measure(s) selected";
+    };
+
+    measureOkButton.Click += (s, e) =>
+    {
+        if (checkedMeasureNames.Count == 0)
+        {
+            MessageBox.Show("Select at least one measure.", "No measures selected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
+        measureForm.DialogResult = DialogResult.OK;
+        measureForm.Close();
+    };
+
+    measureForm.AcceptButton = measureOkButton;
+    measureForm.CancelButton = measureCancelButton;
+    measureForm.Shown += (s, e) => measureSearchBox.Focus();
+
+    if (measureForm.ShowDialog() != DialogResult.OK)
+        return;
+
+    baseMeasures = allMeasures.Where(m => checkedMeasureNames.Contains(m.DaxObjectFullName)).ToList();
+}
+
+if (!baseMeasures.Any())
+{
+    Error("No measures selected. Select one or more base measures.");
+    return;
+}
+
 // Always initialize as empty list to prevent null reference errors
 List<Function> selectedFunctions = new List<Function>();
 
-// Check if only measures are selected (no functions)
-bool onlyMeasuresSelected = Selected.Measures.Any() && !Selected.Functions.Any();
+// No functions selected: pick them from a list
+bool pickFunctions = !Selected.Functions.Any();
 
-if (onlyMeasuresSelected)
+if (pickFunctions)
 {
     // STEP 1: Get list of functions and filter for TimeIntel prefix and single parameter
     var allFunctions = Model.Functions.ToList();
@@ -356,11 +499,6 @@ if (onlyMeasuresSelected)
 }
 else
 {
-    if (!Selected.Functions.Any())
-    {
-        Error("No Functions selected.");
-        return;
-    }
     // Filter selected functions to only include those with one parameter
     selectedFunctions = Selected.Functions.Where(f => CountFunctionParameters(f) == 1).ToList();
     
@@ -391,7 +529,7 @@ foreach (var f in selectedFunctions)
 }
 
 // Check for missing format strings (both FormatString and FormatStringExpression)
-foreach (var m in Selected.Measures)
+foreach (var m in baseMeasures)
 {
     bool hasFormatString = !string.IsNullOrWhiteSpace(m.FormatString);
     bool hasFormatStringExpression = !string.IsNullOrWhiteSpace(m.FormatStringExpression);
@@ -487,7 +625,7 @@ if (missingFormatString.Any() || missingMeasureDescription.Any() || missingFunct
         cell.Style.SelectionBackColor = naBack;
         cell.Value = "";
     };
-    foreach (var m in Selected.Measures)
+    foreach (var m in baseMeasures)
     {
         bool noFormat = missingFormatString.Contains(m.Name);
         bool noDescription = missingMeasureDescription.Contains(m.Name);
@@ -728,7 +866,7 @@ Func<Function, bool, bool, Measure, (string prefix, string suffix, string folder
 var functionMeasurePrefixes = new Dictionary<string, string>();
 var functionMeasureSuffixes = new Dictionary<string, string>();
 var functionFolderNames     = new Dictionary<string, string>();
-var sampleMeasureForPreview = Selected.Measures.FirstOrDefault();
+var sampleMeasureForPreview = baseMeasures.FirstOrDefault();
 
 foreach (var f in selectedFunctions)
 {
@@ -757,7 +895,7 @@ foreach (var f in selectedFunctions)
 }
 
 // Loop through selected measures and functions
-foreach (var m in Selected. Measures)
+foreach (var m in baseMeasures)
 {
     foreach (var f in selectedFunctions)
     {

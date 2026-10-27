@@ -3,7 +3,7 @@ draft: true
 publish: 2026-12-01
 icon: lucide/calendar-days
 complexity: Beginner
-video_seconds: 45
+video_seconds: 65
 te_versions: [TE3]
 macros:
   - TE macros/TE3 shared/01 - Create a formatted date table with calendar options.cs
@@ -51,6 +51,8 @@ from Tabular Editor that creates a calculated table. This one creates it in Powe
 The purpose of this macro is to get you started in an easy way and set you up for the following posts.
 It adds the calendar options, which we will use later.
 
+It also solves a more complex part: adding ISO week and ISO year, using Power Query.
+
 ??? example "Show the script"
     ```csharp
     --8<-- "TE macros/TE3 shared/01 - Create a formatted date table with calendar options.cs"
@@ -77,3 +79,8 @@ using the Gregorian calendar. Note that it only sets up the date table, not the 
   SQLBI: how the calendar-based time intelligence functions work, including weekly and other non-Gregorian calendars.
 - [An introduction to calendar-based time intelligence in Power BI – with Tabular Editor 3](https://tabulareditor.com/resources/upcoming-and-on-demand-events/on-demand-webinar-calendar-based-time-intelligence),
   on-demand webinar: why calendar options are worth using in new solutions.
+- [Continuous axis for any date table in Power BI](https://www.sqlbi.com/articles/continuous-axis-for-any-date-table-in-power-bi/),
+  SQLBI: the data categories and hierarchies the macro sets so line charts keep a continuous date axis.
+
+!!! todo "Your words"
+    Add the BI Gorilla reference, the source of the ISO week and year logic: link, plus one line on why it is worth reading.

@@ -2,10 +2,6 @@
 // and configure calendar options (Gregorian + ISO/Weekly) - all in a single script execution
 // (no reload required between steps, since everything runs against the same in-memory model).
 //
-// This replaces the previous two-script workflow:
-//   1 - Create English Calendar.cs
-//   2 - Mark as Date-Table and create relationship.cs
-//
 // Changes vs. the original two scripts:
 //   1. "Year Slicer" column renamed to "Year slicer" (matches the actual M-generated column name
 //      produced by the RenameColumn function, which lower-cases "slicer").
@@ -21,6 +17,10 @@
 //      calendar option's Week time unit now also carries "Week slicer" as an associated column, and
 //      its Date time unit now also carries "Date slicer"/"Date_Key" as associated columns (matching
 //      the Gregorian calendar's Date time unit).
+//   7. Continuous axis (SQLBI): "Date" gets data category "PaddedDateTableDates", "Year" and
+//      "ISO year" get "Years", and three hierarchies are added: "Year-Quarter-Month" (Year >
+//      Year quarter > Month name Year > Date), "Year-Month" (Year > Year month > Date) and
+//      "ISO year-Week" (ISO year > ISO year week > Date).
 //
 // Requires compatibility level 1702 or above (for Calendar / AddCalendar support).
 
@@ -30,10 +30,16 @@ using System;
 using System.Drawing;
 using System.Windows.Forms;
 using System.Linq;
+using System.Collections.Generic;
 
 // Hide script execution dialog and cursor
 ScriptHelper.WaitFormVisible = false;
 Application.UseWaitCursor = false;
+
+// Status messages are collected here and shown in ONE summary box at the end, instead of one
+// information box per step. Only messages that stop the script are shown right away.
+var _log = new List<string>();
+Action<string> Log = message => _log.Add(message);
 
 // ============================================================================
 // STEP 1: Create the English Calendar table
@@ -300,7 +306,7 @@ if (selectedOption == "Relative date")
     int _yearsFromStart;
     if (!int.TryParse(inputStart, out _yearsFromStart))
     {
-        Info("Invalid input. Using default value: -10");
+        Log("Invalid input. Using default value: -10");
         _yearsFromStart = -10;
     }
 
@@ -309,7 +315,7 @@ if (selectedOption == "Relative date")
     int _yearsFromEnd;
     if (!int.TryParse(inputEnd, out _yearsFromEnd))
     {
-        Info("Invalid input. Using default value: 0");
+        Log("Invalid input. Using default value: 0");
         _yearsFromEnd = 0;
     }
 
@@ -328,16 +334,16 @@ in
         {
             var sharedExpression = Model.AddExpression(expressionStartName, _MExpressionStart);
             sharedExpression.SetAnnotation("Start date", "Import");
-            Info($"Created Shared Expression '{expressionStartName}' successfully.");
+            Log($"Created Shared Expression '{expressionStartName}' successfully.");
         }
         catch (Exception ex)
         {
-            Info($"Failed to create Shared Expression '{expressionStartName}'.\n\nReason: {ex.Message}");
+            Log($"Failed to create Shared Expression '{expressionStartName}'. Reason: {ex.Message}");
         }
     }
     else
     {
-        Info($"Skipped creation: Shared Expression '{expressionStartName}' already exists.");
+        Log($"Skipped creation: Shared Expression '{expressionStartName}' already exists.");
     }
 
     // Create Relative EndDate
@@ -355,16 +361,16 @@ in
         {
             var sharedExpression = Model.AddExpression(expressionEndName, _MExpressionEnd);
             sharedExpression.SetAnnotation("End date", "Import");
-            Info($"Created Shared Expression '{expressionEndName}' successfully.");
+            Log($"Created Shared Expression '{expressionEndName}' successfully.");
         }
         catch (Exception ex)
         {
-            Info($"Failed to create Shared Expression '{expressionEndName}'.\n\nReason: {ex.Message}");
+            Log($"Failed to create Shared Expression '{expressionEndName}'. Reason: {ex.Message}");
         }
     }
     else
     {
-        Info($"Skipped creation: Shared Expression '{expressionEndName}' already exists.");
+        Log($"Skipped creation: Shared Expression '{expressionEndName}' already exists.");
     }
 }
 else if (selectedOption == "Selected date")
@@ -398,16 +404,16 @@ in
         {
             var sharedExpression = Model.AddExpression(expressionEarliestName, _MExpressionEarliest);
             sharedExpression.SetAnnotation("Start date", "Import");
-            Info($"Created Shared Expression '{expressionEarliestName}' successfully.");
+            Log($"Created Shared Expression '{expressionEarliestName}' successfully.");
         }
         catch (Exception ex)
         {
-            Info($"Failed to create Shared Expression '{expressionEarliestName}'.\n\nReason: {ex.Message}");
+            Log($"Failed to create Shared Expression '{expressionEarliestName}'. Reason: {ex.Message}");
         }
     }
     else
     {
-        Info($"Skipped creation: Shared Expression '{expressionEarliestName}' already exists.");
+        Log($"Skipped creation: Shared Expression '{expressionEarliestName}' already exists.");
     }
 
     // Select Latest Date Column
@@ -437,21 +443,21 @@ in
         {
             var sharedExpression = Model.AddExpression(expressionLatestName, _MExpressionLatest);
             sharedExpression.SetAnnotation("End date", "Import");
-            Info($"Created Shared Expression '{expressionLatestName}' successfully.");
+            Log($"Created Shared Expression '{expressionLatestName}' successfully.");
         }
         catch (Exception ex)
         {
-            Info($"Failed to create Shared Expression '{expressionLatestName}'.\n\nReason: {ex.Message}");
+            Log($"Failed to create Shared Expression '{expressionLatestName}'. Reason: {ex.Message}");
         }
     }
     else
     {
-        Info($"Skipped creation: Shared Expression '{expressionLatestName}' already exists.");
+        Log($"Skipped creation: Shared Expression '{expressionLatestName}' already exists.");
     }
 }
 else
 {
-    Info("No option selected. Script aborted.");
+    Log("No date range option selected - no Start date / End date expressions were created.");
 }
 
 // Insert Rename_columns, as input is using _ if the same can be used in Lakehouse
@@ -462,7 +468,7 @@ string functionName = "RenameColumn";
 // Check if the function already exists
 if (Model.Expressions.Contains(functionName))
 {
-    Info($"Function '{functionName}' already exists. Skipping creation.");
+    Log($"Function '{functionName}' already exists. Skipping creation.");
 }
 else
 {
@@ -484,7 +490,7 @@ let
     // Add the M function to the model
     var mFunction = Model.AddExpression(functionName, _MFunction);
 
-    Info($"Created function '{functionName}' successfully.");
+    Log($"Created function '{functionName}' successfully.");
 }
 
 // ============================================================================
@@ -498,12 +504,18 @@ try
 
     if (!_Table.Columns.Contains(_dateColumnName))
     {
-        Error($"Column '{_dateColumnName}' not found in table '{_calendarTableName}'. Cannot mark as date table.");
+        Log($"Error: Column '{_dateColumnName}' not found in table '{_calendarTableName}'. Cannot mark as date table.");
     }
     else
     {
         _Table.DataCategory = "Time";
         _Table.Columns[_dateColumnName].IsKey = true;
+
+        // Change #7: data categories for a continuous axis in date hierarchies (see STEP 2b).
+        // PaddedDateTableDates is undocumented and not in the Power BI Desktop dropdown.
+        _Table.Columns[_dateColumnName].DataCategory = "PaddedDateTableDates";
+        _Table.Columns["Year"].DataCategory = "Years";
+        _Table.Columns["ISO year"].DataCategory = "Years";
 
         // Change #2: Table group should be "Dimension"
         _Table.TableGroup = "Dimension";
@@ -522,12 +534,47 @@ try
                 column.FormatString = "MM/dd/yyyy";
         }
 
-        Info($"'{_calendarTableName}' marked as date table using column '{_dateColumnName}'.");
+        Log($"'{_calendarTableName}' marked as date table using column '{_dateColumnName}'.");
     }
 }
 catch (Exception ex)
 {
-    Error($"Error marking '{_calendarTableName}' as date table: {ex.Message}");
+    Log($"Error marking '{_calendarTableName}' as date table: {ex.Message}");
+}
+
+// ============================================================================
+// STEP 2b: Add date hierarchies (continuous axis)
+// A visual keeps a continuous axis when it uses a hierarchy that starts at a "Years" column and
+// ends at the "PaddedDateTableDates" column. See:
+// https://www.sqlbi.com/articles/continuous-axis-for-any-date-table-in-power-bi/
+// ============================================================================
+
+try
+{
+    var _hYqm = _Table.AddHierarchy("Year-Quarter-Month", null, new Column[0]);
+    _hYqm.Description = "Year > Quarter > Month > Date, with a continuous axis in line charts.";
+    _hYqm.AddLevel(_Table.Columns["Year"], "Year");
+    _hYqm.AddLevel(_Table.Columns["Year quarter"], "Quarter");
+    _hYqm.AddLevel(_Table.Columns["Month name Year"], "Month");
+    _hYqm.AddLevel(_Table.Columns["Date"], "Date");
+
+    var _hYm = _Table.AddHierarchy("Year-Month", null, new Column[0]);
+    _hYm.Description = "Year > Year month > Date, with a continuous axis in line charts.";
+    _hYm.AddLevel(_Table.Columns["Year"], "Year");
+    _hYm.AddLevel(_Table.Columns["Year month"], "Year month");
+    _hYm.AddLevel(_Table.Columns["Date"], "Date");
+
+    var _hIsoYw = _Table.AddHierarchy("ISO year-Week", null, new Column[0]);
+    _hIsoYw.Description = "ISO year > Week > Date, with a continuous axis in line charts.";
+    _hIsoYw.AddLevel(_Table.Columns["ISO year"], "ISO year");
+    _hIsoYw.AddLevel(_Table.Columns["ISO year week"], "Week");
+    _hIsoYw.AddLevel(_Table.Columns["Date"], "Date");
+
+    Log("Created hierarchies 'Year-Quarter-Month', 'Year-Month' and 'ISO year-Week'.");
+}
+catch (Exception ex)
+{
+    Log($"Error creating hierarchies: {ex.Message}");
 }
 
 // ============================================================================
@@ -550,7 +597,7 @@ try
     calendar1.AddTimeUnit(TimeUnit.MonthOfYear, col("Month no"), col("Month name"), col("Month short name"));
     calendar1.AddTimeUnit(TimeUnit.Date, col("Date"), col("Date slicer"), col("Date_Key"));
 
-    Info("Created calendar option 'Gregorian'.");
+    Log("Created calendar option 'Gregorian'.");
 
     // ----- Weekly calendar (ISO week-based) -----
     var calendar2 = _Table.AddCalendar("Weekly");
@@ -561,11 +608,11 @@ try
     calendar2.AddTimeUnit(TimeUnit.WeekOfYear, col("ISO week"));
     calendar2.AddTimeUnit(TimeUnit.Date, col("Date"), col("Date slicer"), col("Date_Key"));
 
-    Info("Created calendar option 'Weekly'.");
+    Log("Created calendar option 'Weekly'.");
 }
 catch (Exception ex)
 {
-    Error($"Error creating calendar options: {ex.Message}");
+    Log($"Error creating calendar options: {ex.Message}");
 }
 
 // ============================================================================
@@ -606,11 +653,11 @@ string _relationshipMode = "Skip";
 
 if (_relationshipMode == "Cancel")
 {
-    Info("Cancelled - no relationships were created.");
+    Log("Cancelled - no relationships were created.");
 }
 else if (_relationshipMode == "Skip")
 {
-    Info("Skipped relationship creation, as requested.");
+    Log("Skipped relationship creation, as requested.");
 }
 else
 {
@@ -738,7 +785,7 @@ else
 
     if (candidateColumns.Count == 0)
     {
-        Info($"No {typeLabel} columns found on other tables - skipping relationship creation.");
+        Log($"No {typeLabel} columns found on other tables - skipping relationship creation.");
     }
     else
     {
@@ -753,7 +800,7 @@ else
         {
             if (RelationshipExists(fromCol, oneSideColumn))
             {
-                Info($"Relationship from '{fromCol.DaxObjectFullName}' to '{oneSideColumn.DaxObjectFullName}' already exists - skipping.");
+                Log($"Relationship from '{fromCol.DaxObjectFullName}' to '{oneSideColumn.DaxObjectFullName}' already exists - skipping.");
                 continue;
             }
             var rel = Model.AddRelationship();
@@ -762,6 +809,7 @@ else
             rel.FromCardinality = RelationshipEndCardinality.Many;
             rel.ToCardinality = RelationshipEndCardinality.One;
             rel.IsActive = true;
+            Log($"Created active relationship {fromCol.DaxObjectFullName} -> {oneSideColumn.DaxObjectFullName}.");
         }
 
         var addInactive = MessageBox.Show(
@@ -779,7 +827,7 @@ else
 
             if (inactiveCandidates.Count == 0)
             {
-                Info("No further candidate columns available for additional inactive relationships.");
+                Log("No further candidate columns available for additional inactive relationships.");
             }
             else
             {
@@ -791,7 +839,7 @@ else
                 {
                     if (RelationshipExists(fromCol, oneSideColumn))
                     {
-                        Info($"Relationship from '{fromCol.DaxObjectFullName}' to '{oneSideColumn.DaxObjectFullName}' already exists - skipping.");
+                        Log($"Relationship from '{fromCol.DaxObjectFullName}' to '{oneSideColumn.DaxObjectFullName}' already exists - skipping.");
                         continue;
                     }
                     var rel = Model.AddRelationship();
@@ -800,12 +848,13 @@ else
                     rel.FromCardinality = RelationshipEndCardinality.Many;
                     rel.ToCardinality = RelationshipEndCardinality.One;
                     rel.IsActive = false;
+                    Log($"Created inactive relationship {fromCol.DaxObjectFullName} -> {oneSideColumn.DaxObjectFullName}.");
                 }
             }
         }
 
-        Info("Relationship setup completed.");
     }
 }
 
-Info("Calendar table creation, date-table setup, calendar options, and relationships completed successfully!");
+Info($"Calendar table '{_calendarTableName}' created." + Environment.NewLine + Environment.NewLine +
+    string.Join(Environment.NewLine, _log.Select(m => "- " + m)));

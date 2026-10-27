@@ -17,6 +17,9 @@
  // 
  // To ensure the best result, ensure that base-measures have format string and descriptions, and descriptions are included for functions
  //     - This is ensured if macros are run as part of this creation
+ //     - If anything is missing, an editable "Missing Metadata" grid is shown (same as in macro 03): fill in a
+ //       format string OR format string expression and/or descriptions; they are saved on the existing
+ //       measures / DAX UDFs and used for the new measures. Or continue without changes, or cancel.
  
 
 #r "Microsoft.VisualBasic"
@@ -725,7 +728,7 @@ var alreadyExistingMeasures = new List<string>();
 // tree-view dialog above rather than the model tree selection)
 foreach (var m in new[] { measure1, measure2 })
 {
-    if (string.IsNullOrWhiteSpace(m.FormatString))
+    if (string.IsNullOrWhiteSpace(m.FormatString) && string.IsNullOrWhiteSpace(m.FormatStringExpression))
         missingFormatString.Add(m.Name);
     if (string.IsNullOrWhiteSpace(m.Description))
         missingMeasureDescription.Add(m.Name);
@@ -738,38 +741,204 @@ foreach (var f in selectedFunctions)
         missingFunctionDescription.Add(f.Name);
 }
 
-// Build info message if any metadata is missing
+// Missing metadata: one editable grid instead of a message box. Fill in the highlighted cells
+// to fix the base measures / DAX UDFs directly in the model before the new measures are created;
+// the new measures then inherit the values (format from the Actual measure, description from the
+// function description with measure1/measure2 replaced). Blank cells stay as they are.
 if (missingFormatString.Any() || missingMeasureDescription.Any() || missingFunctionDescription.Any())
 {
-    string infoMessage = "Missing metadata detected:\n" +
-                     "- Option 1: Press Cancel, fix items, then run script again\n" +
-                     "- Option 2: Continue and validate created format string and descriptions\n";
+    var editBack       = Color.FromArgb(255, 244, 179);   // highlighted editable cells
+    var editHeaderBack = Color.FromArgb(255, 214, 102);
+    var naBack         = Color.FromArgb(235, 235, 235);   // not applicable for this row
+    var boldFont       = new Font("Segoe UI", 9, FontStyle.Bold);
+    var workArea       = Screen.PrimaryScreen.WorkingArea;
 
-    if (missingFormatString.Any())
+    var metadataForm = new Form {
+        Text = "Missing Metadata",
+        Size = new Size((int)(workArea.Width * 0.75), (int)(workArea.Height * 0.6)),
+        MinimumSize = new Size(760, 380),
+        StartPosition = FormStartPosition.CenterScreen,
+        FormBorderStyle = FormBorderStyle.Sizable,
+        MaximizeBox = true,
+        MinimizeBox = false,
+        Font = new Font("Segoe UI", 9)
+    };
+    var metadataLayout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 1, RowCount = 4, Padding = new Padding(12) };
+    metadataLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+    metadataLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+    metadataLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+    metadataLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+    metadataForm.Controls.Add(metadataLayout);
+
+    var metadataHeading = new Label {
+        Text = "Missing metadata detected. Optionally fill in the highlighted cells - they are saved on the existing measures / DAX UDFs and used for the new measures.",
+        AutoSize = true, MaximumSize = new Size(1100, 0), Font = new Font("Segoe UI", 10, FontStyle.Bold), Margin = new Padding(0, 0, 0, 8)
+    };
+
+    var metadataGrid = new DataGridView {
+        Dock = DockStyle.Fill,
+        AutoGenerateColumns = false,
+        AllowUserToAddRows = false,
+        AllowUserToDeleteRows = false,
+        RowHeadersVisible = false,
+        SelectionMode = DataGridViewSelectionMode.CellSelect,
+        AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells,
+        BackgroundColor = SystemColors.Window,
+        EnableHeadersVisualStyles = false,   // required for custom header colours
+        EditMode = DataGridViewEditMode.EditOnEnter
+    };
+    metadataGrid.ColumnHeadersDefaultCellStyle.Font = boldFont;
+    metadataGrid.DefaultCellStyle.ForeColor = Color.FromArgb(90, 90, 90);
+
+    Func<string, string, int, bool, DataGridViewTextBoxColumn> addColumn = (name, header, width, editable) =>
     {
-        infoMessage += "\n• FormatString missing in measures:\n";
-        foreach (var name in missingFormatString)
-            infoMessage += "   - " + name + "\n";
+        var column = new DataGridViewTextBoxColumn { Name = name, HeaderText = header, Width = width, ReadOnly = !editable };
+        if (editable)
+        {
+            column.DefaultCellStyle = new DataGridViewCellStyle {
+                BackColor = editBack, ForeColor = Color.Black, Font = boldFont,
+                SelectionBackColor = editHeaderBack, SelectionForeColor = Color.Black,
+                WrapMode = DataGridViewTriState.True
+            };
+            column.HeaderCell.Style.BackColor = editHeaderBack;
+            column.HeaderCell.Style.ForeColor = Color.Black;
+        }
+        metadataGrid.Columns.Add(column);
+        return column;
+    };
+    addColumn("Kind", "Type", 80, false);
+    addColumn("Name", "Name", 220, false);
+    addColumn("Missing", "Missing", 190, false);
+    addColumn("FormatString", "Format string (edit)", 190, true);
+    addColumn("FormatStringExpression", "Format string expression (edit)", 240, true);
+    var descriptionColumn = addColumn("Description", "Description (edit)", 300, true);
+    descriptionColumn.AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill;
+    descriptionColumn.MinimumWidth = 200;
+
+    // One row per object with something missing; non-applicable cells are greyed and read-only.
+    Action<DataGridViewCell> disableCell = cell =>
+    {
+        cell.ReadOnly = true;
+        cell.Style.BackColor = naBack;
+        cell.Style.SelectionBackColor = naBack;
+        cell.Value = "";
+    };
+    foreach (var m in new[] { measure1, measure2 }.Distinct())
+    {
+        bool noFormat = missingFormatString.Contains(m.Name);
+        bool noDescription = missingMeasureDescription.Contains(m.Name);
+        if (!noFormat && !noDescription) continue;
+
+        var missing = string.Join(" + ", new[] { noFormat ? "Format string" : null, noDescription ? "Description" : null }.Where(x => x != null));
+        int rowIndex = metadataGrid.Rows.Add("Measure", m.Table.Name + "[" + m.Name + "]", missing, "", "", "");
+        var row = metadataGrid.Rows[rowIndex];
+        row.Tag = m;
+        if (!noFormat) { disableCell(row.Cells["FormatString"]); disableCell(row.Cells["FormatStringExpression"]); }
+        if (!noDescription) disableCell(row.Cells["Description"]);
+    }
+    foreach (var f in selectedFunctions.Where(fn => missingFunctionDescription.Contains(fn.Name)))
+    {
+        int rowIndex = metadataGrid.Rows.Add("DAX UDF", f.Name, "Description", "", "", "");
+        var row = metadataGrid.Rows[rowIndex];
+        row.Tag = f;
+        disableCell(row.Cells["FormatString"]);
+        disableCell(row.Cells["FormatStringExpression"]);
     }
 
-    if (missingMeasureDescription.Any())
+    // Suggest common format strings while typing in the Format string column
+    metadataGrid.EditingControlShowing += (s, e) =>
     {
-        infoMessage += "\n• Description missing in measures:\n";
-        foreach (var name in missingMeasureDescription)
-            infoMessage += "   - " + name + "\n";
-    }
+        var textBox = e.Control as TextBox;
+        if (textBox == null) return;
+        if (metadataGrid.CurrentCell.OwningColumn.Name == "FormatString")
+        {
+            var suggestions = new AutoCompleteStringCollection();
+            suggestions.AddRange(new[] {
+                "#,0", "#,0.0", "#,0.00", "0", "0.0", "0.00",
+                "0%", "0.0%", "#,0.0%;-#,0.0%;#,0.0%", "#,0.00%",
+                "#,0;-#,0;#,0", "#,0.0;-#,0.0;#,0.0", "\"kr\" #,0", "#,0 \"kr\""
+            });
+            suggestions.AddRange(Model.AllMeasures.Select(x => x.FormatString).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct().ToArray());
+            textBox.AutoCompleteCustomSource = suggestions;
+            textBox.AutoCompleteSource = AutoCompleteSource.CustomSource;
+            textBox.AutoCompleteMode = AutoCompleteMode.SuggestAppend;
+            textBox.Multiline = false;
+        }
+        else
+        {
+            textBox.AutoCompleteMode = AutoCompleteMode.None;
+        }
+    };
 
-    if (missingFunctionDescription.Any())
-    {
-        infoMessage += "\n• Description missing in functions:\n";
-        foreach (var name in missingFunctionDescription)
-            infoMessage += "   - " + name + "\n";
-    }
+    var metadataHint = new Label {
+        Text = "Only the highlighted cells are editable; grey cells are not applicable. Enter EITHER a format string OR a format string expression per measure, not both. " +
+               "Blank cells are left unchanged. Suggestions are shown while typing a format string.",
+        AutoSize = true, MaximumSize = new Size(1100, 0), ForeColor = Color.DimGray, Margin = new Padding(0, 6, 0, 0)
+    };
 
-    var result = MessageBox.Show(infoMessage, "Missing Metadata", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
-    if (result == DialogResult.Cancel)
+    var metadataButtons = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, Margin = new Padding(0, 8, 0, 0) };
+    var applyAndContinue = new Button { Text = "Apply changes and continue", AutoSize = true, Font = boldFont, Margin = new Padding(0, 0, 8, 0) };
+    var continueUnchanged = new Button { Text = "Continue without changes", AutoSize = true, Margin = new Padding(0, 0, 8, 0), DialogResult = DialogResult.Ignore };
+    var metadataCancel = new Button { Text = "Cancel", AutoSize = true, DialogResult = DialogResult.Cancel };
+    metadataButtons.Controls.AddRange(new Control[] { applyAndContinue, continueUnchanged, metadataCancel });
+
+    applyAndContinue.Click += (s, e) =>
     {
+        metadataGrid.EndEdit();
+        foreach (DataGridViewRow row in metadataGrid.Rows)
+        {
+            var fs  = (Convert.ToString(row.Cells["FormatString"].Value) ?? "").Trim();
+            var fse = (Convert.ToString(row.Cells["FormatStringExpression"].Value) ?? "").Trim();
+            if (fs.Length > 0 && fse.Length > 0)
+            {
+                MessageBox.Show("Enter either a format string or a format string expression for " + row.Cells["Name"].Value + ", not both.",
+                    "Format string", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                metadataGrid.CurrentCell = row.Cells["FormatStringExpression"];
+                return;
+            }
+        }
+        metadataForm.DialogResult = DialogResult.OK;
+        metadataForm.Close();
+    };
+
+    metadataLayout.Controls.Add(metadataHeading, 0, 0);
+    metadataLayout.Controls.Add(metadataGrid, 0, 1);
+    metadataLayout.Controls.Add(metadataHint, 0, 2);
+    metadataLayout.Controls.Add(metadataButtons, 0, 3);
+    // No AcceptButton: Enter commits the cell being edited instead of closing.
+    metadataForm.CancelButton = metadataCancel;
+    metadataForm.Shown += (s, e) =>
+    {
+        foreach (DataGridViewRow row in metadataGrid.Rows)
+            foreach (DataGridViewCell cell in row.Cells)
+                if (!cell.ReadOnly) { metadataGrid.CurrentCell = cell; metadataGrid.BeginEdit(true); return; }
+    };
+
+    var metadataResult = metadataForm.ShowDialog();
+    if (metadataResult == DialogResult.Cancel)
         return;
+
+    if (metadataResult == DialogResult.OK)
+    {
+        int updated = 0;
+        foreach (DataGridViewRow row in metadataGrid.Rows)
+        {
+            var fs   = (Convert.ToString(row.Cells["FormatString"].Value) ?? "").Trim();
+            var fse  = (Convert.ToString(row.Cells["FormatStringExpression"].Value) ?? "").Trim();
+            var desc = (Convert.ToString(row.Cells["Description"].Value) ?? "").Trim();
+
+            var measure = row.Tag as Measure;
+            if (measure != null)
+            {
+                if (fs.Length > 0)  { measure.FormatString = fs; updated++; }
+                if (fse.Length > 0) { measure.FormatStringExpression = fse; updated++; }
+                if (desc.Length > 0) { measure.Description = desc; updated++; }
+            }
+            var function = row.Tag as Function;
+            if (function != null && desc.Length > 0) { function.Description = desc; updated++; }
+        }
+        if (updated > 0)
+            Info(updated + " metadata value(s) saved on the existing measures / DAX UDFs. The new measures will use them.");
     }
 }
 
@@ -966,6 +1135,10 @@ foreach (var function in selectedFunctions)
         formatString = measure1.FormatString;
     }
     newMeasure.FormatString = formatString;
+    // A dynamic format string on the Actual measure (e.g. entered in the Missing Metadata grid) is
+    // inherited the same way, unless a percentage format was chosen above.
+    if (string.IsNullOrWhiteSpace(formatString) && !string.IsNullOrWhiteSpace(measure1.FormatStringExpression))
+        newMeasure.FormatStringExpression = measure1.FormatStringExpression;
 
     // Create description by replacing placeholders in function description
     string description = function.Description ?? $"Comparison function {function.Name}";

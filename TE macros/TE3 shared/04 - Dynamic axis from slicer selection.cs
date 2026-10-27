@@ -19,8 +19,11 @@
  * intelligence logic). Two calculation groups sharing the same Precedence give an undefined/unreliable
  * evaluation order - avoid ties. See the Info box shown the first time the calculation group is created.
  *
- * Flow (brief): Detects or creates a disconnected copy of the main date table (inactive relationship),
- * cloning any Calendar Options onto it so weekly/monthly logic resolves correctly; creates the required
+ * Flow (brief): Detects a disconnected calendar (a table filtering the main date table through an
+ * inactive relationship: main Date = Many, disconnected Date = One; inactive fact-table relationships
+ * are ignored) or creates one as a copy of the main date table, including the continuous axis settings
+ * (data categories such as PaddedDateTableDates / Years, and the user hierarchies), cloning any Calendar
+ * Options onto it so weekly/monthly logic resolves correctly; creates the required
  * model-specific ("Local.") DAX UDFs (reference date, year boundaries, period windows - reusing an
  * existing function/item instead of duplicating if an identical one already exists); and creates or
  * updates the "Period to show" calculation group and its calculation items based on the dialog
@@ -71,15 +74,16 @@ if (calcGroupTable != null)
     string linkedName = calcGroupTable.GetAnnotation(calcGroupLinkAnnotation);
     var linkedTable = !string.IsNullOrEmpty(linkedName) && Model.Tables.Contains(linkedName) ? Model.Tables[linkedName] : null;
     var linkedRel = linkedTable != null
-        ? Model.Relationships.FirstOrDefault(r => !r.IsActive && (r.FromTable == linkedTable || r.ToTable == linkedTable))
+        // The disconnected calendar filters the main date table: main date column (Many) -> disconnected (One)
+        ? Model.Relationships.FirstOrDefault(r => !r.IsActive && r.ToTable == linkedTable
+            && r.ToCardinality == RelationshipEndCardinality.One && r.FromColumn.DataType == DataType.DateTime)
         : null;
 
     if (linkedTable != null && linkedRel != null)
     {
         disconnectedTable = linkedTable;
-        bool disconnectedIsFrom = linkedRel.FromTable == disconnectedTable;
-        disconnectedDateColumn = disconnectedIsFrom ? linkedRel.FromColumn : linkedRel.ToColumn;
-        mainDateColumn = disconnectedIsFrom ? linkedRel.ToColumn : linkedRel.FromColumn;
+        disconnectedDateColumn = linkedRel.ToColumn;
+        mainDateColumn = linkedRel.FromColumn;
         mainTable = mainDateColumn.Table;
         disconnectedAlreadyExisted = true;
         Info($"Using the selected calculation group '{calcGroupTable.Name}', linked to disconnected calendar '{disconnectedTable.Name}' - relationship/calendar setup is skipped; only calculation items will be added/updated.");
@@ -298,38 +302,24 @@ if (needsFullSetup)
 // ============================================================================
 // STEP 2 - Detect (or create) the disconnected calendar (only on a full/first-time setup run)
 // ============================================================================
+// Only a table that FILTERS the main date table counts: an inactive relationship where the main date
+// column is the Many side (From) and a date column on another table is the One side (To). Inactive
+// relationships from fact tables to the date table (fact = Many, date = One) are ignored, and existing
+// relationships are never modified.
 var existingInactiveRel = Model.Relationships.FirstOrDefault(r =>
-    !r.IsActive && (r.FromColumn == mainDateColumn || r.ToColumn == mainDateColumn));
+    !r.IsActive
+    && r.FromColumn == mainDateColumn
+    && r.ToCardinality == RelationshipEndCardinality.One
+    && r.ToTable != mainTable
+    && r.ToColumn.DataType == DataType.DateTime);
 
 disconnectedAlreadyExisted = existingInactiveRel != null;
 
 if (existingInactiveRel != null)
 {
-    bool mainIsFrom = existingInactiveRel.FromColumn == mainDateColumn;
-    disconnectedDateColumn = mainIsFrom ? existingInactiveRel.ToColumn : existingInactiveRel.FromColumn;
+    disconnectedDateColumn = existingInactiveRel.ToColumn;
     disconnectedTable = disconnectedDateColumn.Table;
-    Info($"Found existing disconnected calendar: '{disconnectedTable.Name}' (inactive relationship on '{disconnectedDateColumn.Name}').");
-
-    // Make sure the relationship is oriented correctly: FromTable/FromColumn = main date table
-    // (Many), ToTable/ToColumn = disconnected calendar (One). Fix it in place if it's pointed wrong.
-    bool wrongOrientation = existingInactiveRel.FromColumn != mainDateColumn
-                         || existingInactiveRel.FromCardinality != RelationshipEndCardinality.Many
-                         || existingInactiveRel.ToCardinality != RelationshipEndCardinality.One;
-    if (wrongOrientation)
-    {
-        try
-        {
-            existingInactiveRel.FromColumn = mainDateColumn;
-            existingInactiveRel.ToColumn = disconnectedDateColumn;
-            existingInactiveRel.FromCardinality = RelationshipEndCardinality.Many;
-            existingInactiveRel.ToCardinality = RelationshipEndCardinality.One;
-            warnings.Add($"Corrected the existing relationship between '{mainTable.Name}' and '{disconnectedTable.Name}' (From: {mainTable.Name} - Many, To: {disconnectedTable.Name} - One).");
-        }
-        catch (Exception ex)
-        {
-            warnings.Add($"The existing relationship between '{mainTable.Name}' and '{disconnectedTable.Name}' is oriented incorrectly and could not be auto-corrected ({ex.Message}). Fix it manually in TE3: From='{mainTable.Name}' (Many), To='{disconnectedTable.Name}' (One).");
-        }
-    }
+    Info($"Found existing disconnected calendar: '{disconnectedTable.Name}' (inactive relationship {mainDateColumn.DaxObjectFullName} -> {disconnectedDateColumn.DaxObjectFullName}).");
 }
 else
 {
@@ -379,7 +369,8 @@ in
         }
     }
 
-    // ---- Copy column-level metadata (description, folder, summarize-by, format string) ----
+    // ---- Copy column-level metadata (description, folder, summarize-by, format string, hidden) ----
+    // Data categories (PaddedDateTableDates / Years) and hierarchies are copied further below.
     foreach (var srcCol in mainTable.Columns)
     {
         if (!newTable.Columns.Contains(srcCol.Name)) continue;
@@ -388,6 +379,7 @@ in
         dstCol.DisplayFolder = srcCol.DisplayFolder;
         dstCol.SummarizeBy   = srcCol.SummarizeBy;
         dstCol.FormatString  = srcCol.FormatString;
+        dstCol.IsHidden      = srcCol.IsHidden;
     }
     // Best practice: short date format for any date column that still has no explicit format string
     // (e.g. defaulting to "Long Date"), same convention as "1 - Create English Calendar (combined).cs".
@@ -444,6 +436,33 @@ in
     }
 }
 
+// ---- Continuous axis settings (SQLBI: continuous axis for any date table), copied from the main date
+// table: column data categories (e.g. PaddedDateTableDates on Date, Years on Year) and user hierarchies
+// (e.g. Year-Quarter-Month), matched by column name. Only fills gaps, so it is safe on an existing
+// disconnected calendar: categories already set and hierarchies with the same name are left as they are.
+foreach (var srcCol in mainTable.Columns)
+{
+    if (string.IsNullOrEmpty(srcCol.DataCategory) || !disconnectedTable.Columns.Contains(srcCol.Name)) continue;
+    var dstCol = disconnectedTable.Columns[srcCol.Name];
+    if (string.IsNullOrEmpty(dstCol.DataCategory)) dstCol.DataCategory = srcCol.DataCategory;
+}
+foreach (var srcHier in mainTable.Hierarchies)
+{
+    if (disconnectedTable.Hierarchies.Contains(srcHier.Name)) continue;
+    var srcLevels = srcHier.Levels.OrderBy(l => l.Ordinal).ToList();
+    if (srcLevels.Any(l => !disconnectedTable.Columns.Contains(l.Column.Name)))
+    {
+        warnings.Add($"Hierarchy '{srcHier.Name}' was not copied to '{disconnectedTable.Name}': not all of its level columns exist there.");
+        continue;
+    }
+    // Empty Column[] picks the Column overload (without it the call is ambiguous with the string[] one)
+    var dstHier = disconnectedTable.AddHierarchy(srcHier.Name, srcHier.DisplayFolder, new Column[0]);
+    dstHier.Description = srcHier.Description;
+    dstHier.IsHidden    = srcHier.IsHidden;
+    foreach (var lvl in srcLevels)
+        dstHier.AddLevel(disconnectedTable.Columns[lvl.Column.Name], lvl.Name);
+}
+
 // ---- Ensure a matching "<name> disconnected" Calendar Option exists on the disconnected calendar for
 // every Calendar Option (e.g. Weekly, Gregorian) on the main date table. The weekly calculation items
 // evaluate MAX()/DATESINPERIOD() in the row context of the DISCONNECTED calendar, so DATESINPERIOD
@@ -454,24 +473,30 @@ foreach (var srcCal in mainTable.Calendars)
 {
     string disconnectedCalName = srcCal.Name + " disconnected";
     if (disconnectedTable.Calendars.Any(c => c.Name.Equals(disconnectedCalName, StringComparison.OrdinalIgnoreCase))) continue;
+
+    // Every column the Calendar Option uses must exist (by name) on the disconnected table; otherwise
+    // skip it rather than create an incomplete copy.
+    var srcTimeUnits = srcCal.GetTimeUnits().ToList();
+    var missingCalCols = srcTimeUnits
+        .SelectMany(tu => new[] { tu.PrimaryColumn }.Concat(tu.AssociatedColumns))
+        .Where(c => c != null && !disconnectedTable.Columns.Contains(c.Name))
+        .Select(c => c.Name).Distinct().ToList();
+    if (missingCalCols.Any())
+    {
+        warnings.Add($"Calendar Option '{srcCal.Name}' was not copied to '{disconnectedTable.Name}': missing column(s) {string.Join(", ", missingCalCols)}.");
+        continue;
+    }
     try
     {
-        var clonedCal = srcCal.Clone(disconnectedCalName, disconnectedTable);
-
-        // Clone() copies the calendar column groups but keeps their column references pointing at the
-        // ORIGINAL (main) table's columns - which fails to save ("A column ... belongs to a table
-        // ..., which is different from the owning table ..."). Re-point every primary/associated
-        // column reference to the equivalently-named column on the disconnected table.
-        foreach (var tu in clonedCal.GetTimeUnits().ToList())
+        // Rebuilt from scratch on the disconnected table (same calls as the date table macro), never with
+        // Clone(): a clone keeps references to the MAIN table's columns, and clearing its associated
+        // columns to re-point them deletes those columns from the main date table.
+        var newCal = disconnectedTable.AddCalendar(disconnectedCalName);
+        newCal.Description = srcCal.Description;
+        foreach (var tu in srcTimeUnits.Where(t => t.PrimaryColumn != null))
         {
-            if (tu.PrimaryColumn != null && disconnectedTable.Columns.Contains(tu.PrimaryColumn.Name))
-                tu.PrimaryColumn = disconnectedTable.Columns[tu.PrimaryColumn.Name];
-
-            var associatedNames = tu.AssociatedColumns.Select(c => c.Name).ToList();
-            tu.AssociatedColumns.Clear();
-            foreach (var colName in associatedNames)
-                if (disconnectedTable.Columns.Contains(colName))
-                    tu.AssociatedColumns.Add(disconnectedTable.Columns[colName]);
+            var associated = tu.AssociatedColumns.Select(c => disconnectedTable.Columns[c.Name]).ToArray();
+            newCal.AddTimeUnit(tu.TimeUnit, disconnectedTable.Columns[tu.PrimaryColumn.Name], associated);
         }
     }
     catch (Exception ex)

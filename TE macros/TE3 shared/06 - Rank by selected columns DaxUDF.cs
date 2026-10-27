@@ -8,6 +8,8 @@
 // Column selection is limited to columns from tables that behave like ranking dimensions: not a
 // disconnected date-table (no active relationships), not a calculation group, and not a "fact"
 // table (i.e. the table must filter at least one other table via an active relationship).
+// If exactly one (valid) column is selected in the TOM Explorer, it is used as the ranking column
+// and the ranking-column picker is skipped; the dialog then only asks for the optional variants.
 //
 // For each selected column, up to five functions are created:
 //   - Local.Ranking.<Column>(baseMeasure)                   - the dynamic rank position of
@@ -382,6 +384,24 @@ categoryTree.AfterCheck += (s, e) =>
     }
     suppressCategory = false;
 };
+
+// Exactly one column selected in the TOM Explorer: it is the ranking column, so the ranking-column
+// picker is replaced by its name (the dialog is still shown for the Category / Others options).
+// A selected column that is not a valid ranking dimension falls back to the picker.
+var selectedRankColumn = Selected.Columns.Count() == 1 ? Selected.Columns.First() : null;
+if (selectedRankColumn != null && !allColumns.Contains(selectedRankColumn))
+{
+    notes.Add($"The selected column {selectedRankColumn.DaxObjectFullName} is not on a table that filters another table (or is on a calculation group / disconnected date table), so it was not used as the ranking column.");
+    selectedRankColumn = null;
+}
+if (selectedRankColumn != null)
+{
+    pickedColumns.Add(selectedRankColumn);
+    rankLabel.Text = "Ranking column (selected in the TOM Explorer):";
+    rankSearch.Visible = false;
+    rankTree.Visible = false;
+    pickForm.Controls.Add(new Label { Text = selectedRankColumn.DaxObjectFullName, Location = new Point(20, 42), Width = 440, Height = 20 });
+}
 
 RebuildColumnTree(rankTree, "", allColumns, pickedColumns);
 

@@ -215,7 +215,7 @@ Action<string, string, string, string> AddCalc = (category, label, defaultSuffix
 // "*" marks calculations that need an N value - you'll be prompted for it in a follow-up dialog.
 AddLabel("Choose Time Intelligence calculations and function name suffixes  (* = prompts for a value):");
 AddLabel("\"HF\" = Hide Future Dates - excludes dates after the last available/historical date (configured in a follow-up dialog if any HF box is checked).");
-AddLabel("\"Cmp\" = Comparison (only for YTD/QTD/WTD/MTD/RNm/RNm avg) - adds \"<suffix> Dev\" and \"<suffix> idx\" UDFs comparing the calc against its prior-period counterpart (PYTD/PQTD/PYWTD/PMTD/RNm LY/RNm avg LY) via Comparison.Deviation / Comparison.Pct_change.");
+AddLabel("\"Cmp\" = Comparison (only for YTD/QTD/WTD/MTD/RNm/RNm avg) - adds \"<suffix> Dev\" and \"<suffix> idx\" UDFs comparing the calc against targets you pick in a follow-up dialog (default: its prior-period counterpart PYTD/PQTD/PYWTD/PMTD/RNm LY/RNm avg LY) via Comparison.Deviation / Comparison.Pct_change.");
 
 AddCalc("Accumulated", "Agg. year-to-date",                  "YTD",
         "Accumulated year to date (YTD)");                                       // 0
@@ -389,8 +389,9 @@ for (int i = 0; i < checks.Count; i++)
 
 // "Comparison" (Cmp) column - only applicable to YTD, QTD, WTD, MTD, RNm and RNm avg, which each
 // have a natural prior-period counterpart (PYTD, PQTD, PYWTD, PMTD, RNm LY, RNm avg LY). When
-// checked, two extra UDFs get created later ("<suffix> Dev" and "<suffix> idx") comparing the
-// calc against that counterpart via the model-independent Comparison.Deviation / Comparison.Pct_change UDFs.
+// checked, a follow-up dialog lets the user pick one or more targets (the counterpart by default),
+// and "<suffix> Dev" / "<suffix> idx" UDFs are created per target via the model-independent
+// Comparison.Deviation / Comparison.Pct_change UDFs (see the Comparison add-on at the end).
 var comparisonSupportedIndices = new HashSet<int> { 0, 2, 4, 7, 12, 14 };
 for (int i = 0; i < comparisonChecks.Count; i++)
     comparisonChecks[i].Visible = comparisonSupportedIndices.Contains(i);
@@ -613,10 +614,14 @@ Func<string, string> FuncName = suffix =>
     namePrefix + ".TI_" + suffix.Replace(" ", "_");
 
 var skipped = new List<string>();
+// Every UDF body requested in this run, by measure suffix - reused as _Actual/_Target expressions
+// by the Comparison add-on at the end.
+var createdBodies = new Dictionary<string, string>();
 Func<string, string> NormalizeExpr = s => string.Join(" ", (s ?? "").Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries));
 
 Action<string, string, string, string> CreateUDF = (funcName, daxBody, measureSuffix, description) =>
 {
+    createdBodies[measureSuffix] = daxBody;
     var normalizedNew = NormalizeExpr(daxBody);
 
     // ---- Check 1: an identical DAX expression already exists under a different function name ----
@@ -724,7 +729,13 @@ Action<string, string, string, string> CreateUDF = (funcName, daxBody, measureSu
 // Calendar option already has a column mapped to TimeUnit.Month (the standard, year-unique
 // "Year-Month" granularity - e.g. "Year month no"), that mapping is used automatically and no
 // dialog is shown. Otherwise (plain Date column, or a Calendar option without a Month mapping),
-// the user is prompted to pick a suitable Int64 column.
+// the user picks the column from a ranked list. The ranking uses metadata and data, never column
+// names, since the model is not necessarily in English:
+//   1. One value per year and month of the date column, checked with one DAX query against the
+//      connected model (skipped when TE is not connected).
+//   2. Mapped to TimeUnit.Month in any other Calendar option in the model.
+//   3. Used as the sort-by column of another column in the date table.
+// Columns of the date table come first, and the best candidate is preselected.
 var yearMonthColumn = "Calendar[Year month no]";
 if (checks[14].Checked || checks[RollingMonthsAvgLyIndex].Checked)
 {
@@ -736,20 +747,61 @@ if (checks[14].Checked || checks[RollingMonthsAvgLyIndex].Checked)
     }
     else
     {
-        var monthYearColumns = Model.AllColumns
-            .Where(c => !IsDisconnected(c.Table))
-            .Where(c => c.DataType == DataType.Int64 &&
-                        (c.Name.IndexOf("month", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                         c.Name.IndexOf("year", StringComparison.OrdinalIgnoreCase) >= 0))
+        var dateTableColumns = dateTable == null ? new List<Column>() : dateTable.Columns
+            .Where(c => (c.DataType == DataType.Int64 || c.DataType == DataType.String) &&
+                        c.DaxObjectFullName != actualDateCol)
             .ToList();
-        var intColumns = monthYearColumns.Count > 0
-            ? monthYearColumns
-            : Model.AllColumns.Where(c => !IsDisconnected(c.Table) && c.DataType == DataType.Int64).ToList();
+
+        // 1. One value per year and month (bijective with YEAR * 100 + MONTH of the date column)
+        var dataMatchColumns = new HashSet<Column>();
+        if (dateTableRef != null && dateTableColumns.Count > 0)
+        {
+            string ymKey = $"YEAR( {actualDateCol} ) * 100 + MONTH( {actualDateCol} )";
+            var ymTests = dateTableColumns.Select((c, i) => $@"""c{i}"",
+    VAR _YearMonths = COUNTROWS( DISTINCT( SELECTCOLUMNS( {dateTableRef}, ""@ym"", {ymKey} ) ) )
+    VAR _Values     = COUNTROWS( DISTINCT( SELECTCOLUMNS( {dateTableRef}, ""@c"", {c.DaxObjectFullName} ) ) )
+    VAR _Pairs      = COUNTROWS( DISTINCT( SELECTCOLUMNS( {dateTableRef}, ""@ym"", {ymKey}, ""@c"", {c.DaxObjectFullName} ) ) )
+    RETURN _Values = _YearMonths && _Pairs = _YearMonths");
+            try
+            {
+                var ymResult = EvaluateDax("ROW( " + string.Join(", ", ymTests) + " )") as System.Data.DataTable;
+                if (ymResult != null && ymResult.Rows.Count > 0)
+                    for (int i = 0; i < dateTableColumns.Count; i++)
+                        if (ymResult.Rows[0][i] is bool isMatch && isMatch) dataMatchColumns.Add(dateTableColumns[i]);
+            }
+            catch { } // Not connected to a model: rank by metadata only
+        }
+
+        // 2. Month time unit in any Calendar option
+        var calendarMonthColumns = new HashSet<Column>(Model.AllCalendars
+            .SelectMany(k => k.GetTimeUnits())
+            .Where(tu => tu.TimeUnit == TimeUnit.Month && tu.PrimaryColumn != null)
+            .Select(tu => tu.PrimaryColumn));
+
+        // 3. Sort-by column of another column in the date table
+        var sortByColumns = new HashSet<Column>(dateTableColumns
+            .Where(c => dateTable.Columns.Any(o => o.SortByColumn == c)));
+
+        Func<Column, int> ymScore = c =>
+            (dataMatchColumns.Contains(c) ? 8 : 0) + (calendarMonthColumns.Contains(c) ? 4 : 0) +
+            (sortByColumns.Contains(c) ? 2 : 0) + (c.DataType == DataType.Int64 ? 1 : 0);
+        Func<Column, string> ymNote = c => string.Join(", ", new[] {
+            dataMatchColumns.Contains(c)     ? "one value per year-month" : null,
+            calendarMonthColumns.Contains(c) ? "Month in a calendar option" : null,
+            sortByColumns.Contains(c)        ? "sort-by column" : null }.Where(n => n != null));
+
+        var intColumns = dateTableColumns
+            .Concat(calendarMonthColumns.Where(c => !dateTableColumns.Contains(c)))
+            .OrderByDescending(ymScore)
+            .ThenBy(c => c.Name)
+            .Concat(Model.AllColumns.Where(c => !IsDisconnected(c.Table) && c.DataType == DataType.Int64 &&
+                                                c.Table != dateTable && !calendarMonthColumns.Contains(c)))
+            .ToList();
 
         var ymDlg = new Form { Text = "Rolling N months avg/month", Width = 700, Height = 230, MinimumSize = new Size(520, 220), FormBorderStyle = FormBorderStyle.Sizable, StartPosition = FormStartPosition.CenterScreen, MaximizeBox = true, MinimizeBox = false };
-        var ymLbl = new Label { Text = "Choose a unique Year-Month column (used to average rolling months):", AutoSize = true, Location = new Point(12, 12), MaximumSize = new Size(650, 0) };
+        var ymLbl = new Label { Text = "Choose a unique Year-Month column (used to average rolling months). The best match is preselected:", AutoSize = true, Location = new Point(12, 12), MaximumSize = new Size(650, 0) };
         var ymCombo = new ComboBox { DropDownStyle = ComboBoxStyle.DropDownList, Location = new Point(12, 48), Width = 650, Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right };
-        intColumns.ForEach(c => ymCombo.Items.Add(new ComboBoxItem(c)));
+        intColumns.ForEach(c => ymCombo.Items.Add(new ComboBoxItem(c) { Note = ymNote(c) }));
         if (ymCombo.Items.Count > 0) ymCombo.SelectedIndex = 0;
         var ymBtnPanel = new FlowLayoutPanel { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, FlowDirection = FlowDirection.LeftToRight, Location = new Point(490, 105), Anchor = AnchorStyles.Top | AnchorStyles.Right };
         var ymOk     = new Button { Text = "OK",     AutoSize = true, DialogResult = DialogResult.OK,     Margin = new Padding(0, 0, 8, 0) };
@@ -1204,6 +1256,15 @@ Func<string, string, int, string, string> PreviousToDate = (todateFunc, dc, amou
     )";
 };
 
+// Articles the calculations are based on, written as a comment at the top of each UDF expression
+// (same sources as "02 - Time intelligence calculation group.cs").
+string standardTiRef = isCalendar
+    ? "https://www.sqlbi.com/articles/introducing-calendar-based-time-intelligence-in-dax/"
+    : "https://www.daxpatterns.com/standard-time-related-calculations/";
+const string weekTiRef    = "https://www.sqlbi.com/articles/week-based-time-intelligence-in-dax/";
+const string rollingTiRef = "https://www.sqlbi.com/articles/rolling-12-months-average-in-dax/";
+const string dailyAvgRef  = "https://www.sqlbi.com/articles/the-hidden-complexity-of-a-daily-average-in-dax/";
+
 // ===================== Create UDFs =====================
 
 // 0 – Year-to-date
@@ -1211,6 +1272,7 @@ if (checks[0].Checked)
     CreateUDF(FuncName(suffixes[0].Text), $@"(
     baseMeasure: ANYREF
 ) =>
+    // {standardTiRef}
     {WrapHF(0, $@"CALCULATE(
         baseMeasure,
         DATESYTD( {dateColumn} )
@@ -1221,6 +1283,7 @@ if (checks[1].Checked)
     CreateUDF(FuncName(suffixes[1].Text), $@"(
     baseMeasure: ANYREF
 ) =>
+    // {standardTiRef}
     {WrapHF(1, PreviousToDate("DATESYTD", dateColumn, -1, "YEAR"))}", suffixes[1].Text, descriptions[1]);
 
 // 2 – Quarter-to-date
@@ -1228,6 +1291,7 @@ if (checks[2].Checked)
     CreateUDF(FuncName(suffixes[2].Text), $@"(
     baseMeasure: ANYREF
 ) =>
+    // {standardTiRef}
     {WrapHF(2, $@"CALCULATE(
         baseMeasure,
         DATESQTD( {dateColumn} )
@@ -1238,6 +1302,7 @@ if (checks[3].Checked)
     CreateUDF(FuncName(suffixes[3].Text), $@"(
     baseMeasure: ANYREF
 ) =>
+    // {standardTiRef}
     {WrapHF(3, PreviousToDate("DATESQTD", dateColumn, -1, "YEAR"))}", suffixes[3].Text, descriptions[3]);
 
 // 4 – Week-to-date
@@ -1245,6 +1310,8 @@ if (checks[4].Checked)
     CreateUDF(FuncName(suffixes[4].Text), $@"(
     baseMeasure: ANYREF
 ) =>
+    // {standardTiRef}
+    // {weekTiRef}
     {WrapHF(4, $@"CALCULATE(
         baseMeasure,
         DATESWTD( {dateColumn} )
@@ -1255,6 +1322,8 @@ if (checks[5].Checked)
     CreateUDF(FuncName(suffixes[5].Text), $@"(
     baseMeasure: ANYREF
 ) =>
+    // {standardTiRef}
+    // {weekTiRef}
     {WrapHF(5, PreviousToDate("DATESWTD", dateColumn, -1, "YEAR"))}", suffixes[5].Text, descriptions[5]);
 
 // 6 – Week-to-date previous week
@@ -1263,6 +1332,8 @@ if (checks[6].Checked)
     //https://www.sqlbi.com/articles/understanding-dateadd-parameters-with-calendar-based-time-intelligence/
     baseMeasure: ANYREF
 ) =>
+    // {standardTiRef}
+    // {weekTiRef}
     {WrapHF(6, PreviousToDate("DATESWTD", dateColumn, -1, "WEEK"))}", suffixes[6].Text, descriptions[6]);
 
 // 7 – Month-to-date
@@ -1270,6 +1341,7 @@ if (checks[7].Checked)
     CreateUDF(FuncName(suffixes[7].Text), $@"(
     baseMeasure: ANYREF
 ) =>
+    // {standardTiRef}
     {WrapHF(7, $@"CALCULATE(
         baseMeasure,
         DATESMTD( {dateColumn} )
@@ -1280,6 +1352,7 @@ if (checks[8].Checked)
     CreateUDF(FuncName(suffixes[8].Text), $@"(
     baseMeasure: ANYREF
 ) =>
+    // {standardTiRef}
     {WrapHF(8, PreviousToDate("DATESMTD", dateColumn, -1, "YEAR"))}", suffixes[8].Text, descriptions[8]);
 
 // 9 – Previous year (full year total, accumulated) - uses the real column {actualDateCol} rather
@@ -1289,6 +1362,7 @@ if (checks[9].Checked)
     CreateUDF(FuncName(suffixes[9].Text), $@"(
     baseMeasure: ANYREF
 ) =>
+    // {standardTiRef}
     CALCULATE(
         baseMeasure,
         FILTER(
@@ -1304,6 +1378,7 @@ if (checks[10].Checked)
     CreateUDF(FuncName(suffixes[10].Text), $@"(
     baseMeasure: ANYREF
 ) =>
+    // {standardTiRef}
     CALCULATE(
         baseMeasure,
         FILTER(
@@ -1320,6 +1395,7 @@ if (checks[11].Checked)
     baseMeasure: ANYREF
 ) =>
 
+// Reference: {rollingTiRef}
 //VAR _dynamicRollingPeriod = SELECTEDVALUE( 'Table'[Column] )
 VAR _ReferenceDate = MAX( {actualDateCol} )
 VAR _PreviousDates =
@@ -1341,6 +1417,7 @@ if (checks[12].Checked)
     baseMeasure: ANYREF
 ) =>
 
+// Reference: {rollingTiRef}
 //VAR _dynamicRollingPeriod = SELECTEDVALUE( 'Table'[Column] )
 VAR _ReferenceDate = MAX( {actualDateCol} )
 VAR _PreviousDates =
@@ -1362,6 +1439,7 @@ if (checks[13].Checked)
     baseMeasure: ANYREF
 ) =>
 
+// Reference: {rollingTiRef}
 //VAR _dynamicRollingPeriod = SELECTEDVALUE( 'Table'[Column] )
 VAR _ReferenceDate = MAX( {actualDateCol} )
 VAR _PreviousDates =
@@ -1383,6 +1461,7 @@ if (checks[14].Checked)
     baseMeasure: ANYREF
 ) =>
 
+// Reference: {rollingTiRef}
 //VAR _dynamicRollingPeriod = SELECTEDVALUE( 'Table'[Column] )
 VAR _LastCurrentDate = MAX( {actualDateCol})
 VAR _Period =
@@ -1407,6 +1486,7 @@ if (checks[RollingWeeksAvgIndex].Checked)
     baseMeasure: ANYREF
 ) =>
 
+// Reference: {rollingTiRef}
 //VAR _dynamicRollingPeriod = SELECTEDVALUE( 'Table'[Column] )
 VAR _LastCurrentDate = MAX( {actualDateCol})
 VAR _Period =
@@ -1431,6 +1511,7 @@ if (checks[15].Checked)
     baseMeasure: ANYREF
 ) =>
 
+// Reference: {dailyAvgRef}
 //VAR _dynamicRollingPeriod = SELECTEDVALUE( 'Table'[Column] )
 VAR _LastCurrentDate = MAX( {actualDateCol} )
 VAR _Period =
@@ -1457,6 +1538,7 @@ if (checks[RollingDaysObservedAvgIndex].Checked && observedTransactionDateColumn
     baseMeasure: ANYREF
 ) =>
 
+// Reference: {dailyAvgRef}
 //VAR _dynamicRollingPeriod = SELECTEDVALUE( 'Table'[Column] )
 VAR _FirstObservedDate =
     CALCULATE(
@@ -1540,6 +1622,7 @@ if (checks[18].Checked)
     CreateUDF(FuncName(suffixes[18].Text), $@"(
     baseMeasure: ANYREF
 ) =>
+    // {standardTiRef}
     CALCULATE(
         baseMeasure,
         FILTER(
@@ -1828,14 +1911,23 @@ if (fiscalYearCheckbox.Checked)
 }
 
 // ===================== Comparison (Dev / idx) add-on =====================
-// For the 6 supported rows (YTD, QTD, WTD, MTD, RNm, RNm avg), if the "Cmp" box was checked,
-// creates two extra UDFs comparing the calc's own value ("actual") against its natural
-// prior-period counterpart ("target": PYTD / PQTD / PYWTD / PMTD / RNm LY / RNm avg LY
-// respectively), using the standard model-independent Comparison.Deviation / Comparison.Pct_change
-// UDFs (created here if they don't already exist) - same functions/pattern as
-// "5 - Compare first selected measure with second selected measure.cs", limited to just these two.
+// For each supported row (YTD, QTD, WTD, MTD, RNm, RNm avg) with the "Cmp" box checked, a dialog
+// asks what to compare it with. The list holds:
+//   - its natural prior-period counterpart (PYTD / PQTD / PYWTD / PMTD / RNm LY / RNm avg LY),
+//     checked by default,
+//   - the other calculations requested in this run,
+//   - the time intelligence UDFs already in the model (annotation FunctionCategory).
+// Several targets can be checked. For each one, "<suffix> Dev" and "<suffix> idx" UDFs are
+// created (editable suffixes, blank = skip): _Actual is the row's own expression and _Target is
+// the target's expression, compared via the model-independent Comparison.Deviation /
+// Comparison.Pct_change UDFs (created here if they don't already exist) - same functions/pattern
+// as "5 - Compare first selected measure with second selected measure.cs".
 int _comparisonUdfCount = 0;
-if (comparisonSupportedIndices.Any(i => checks[i].Checked && comparisonChecks[i].Checked))
+var comparisonSources = comparisonSupportedIndices
+    .Where(i => checks[i].Checked && comparisonChecks[i].Checked)
+    .OrderBy(i => i)
+    .ToList();
+if (comparisonSources.Count > 0)
 {
     const string devFuncName = "Comparison.Deviation";
     const string idxFuncName = "Comparison.Pct_change";
@@ -1876,118 +1968,31 @@ if (comparisonSupportedIndices.Any(i => checks[i].Checked && comparisonChecks[i]
         idxFn.Description = "Relative percentage difference between measure1 and measure2.";
     }
 
-    // Builds "<suffix> Dev" and "<suffix> idx" UDFs comparing actualExpr vs. targetExpr (each a
-    // full DAX expression, possibly its own nested VAR/RETURN block, that resolves to a scalar
-    // using baseMeasure).
-    Action<int, string, string> AddComparisonPair = (sourceIdx, actualExpr, targetExpr) =>
-    {
-        if (!(checks[sourceIdx].Checked && comparisonChecks[sourceIdx].Checked)) return;
-
-        string baseSuffix = suffixes[sourceIdx].Text;
-        string devSuffix  = baseSuffix + " Dev";
-        string idxSuffix  = baseSuffix + " idx";
-
-        CreateUDF(FuncName(devSuffix), $@"(
-    baseMeasure: ANYREF
-) =>
-    VAR _Actual = {actualExpr}
-    VAR _Target = {targetExpr}
-    RETURN
-        {devFuncName}( _Actual, _Target )",
-        devSuffix, $"Absolute deviation of {baseSuffix} vs. its prior-period counterpart, using {devFuncName} ({devSuffix}).");
-
-        CreateUDF(FuncName(idxSuffix), $@"(
-    baseMeasure: ANYREF
-) =>
-    VAR _Actual = {actualExpr}
-    VAR _Target = {targetExpr}
-    RETURN
-        {idxFuncName}( _Actual, _Target )",
-        idxSuffix, $"Percentage change of {baseSuffix} vs. its prior-period counterpart, using {idxFuncName} ({idxSuffix}).");
-
-        _comparisonUdfCount += 2;
+    // Natural prior-period counterpart of each comparable row
+    var counterpartOf = new Dictionary<int, int> {
+        { 0, 1 }, { 2, 3 }, { 4, 5 }, { 7, 8 }, { 12, RollingMonthsLyIndex }, { 14, RollingMonthsAvgLyIndex }
     };
 
-    // YTD vs PYTD
-    AddComparisonPair(0,
-        WrapHF(0, $@"CALCULATE(
-        baseMeasure,
-        DATESYTD( {dateColumn} )
-    )"),
-        WrapHF(1, PreviousToDate("DATESYTD", dateColumn, -1, "YEAR")));
+    // The expression of a UDF without its parameter list: everything after the first "=>"
+    Func<string, string> BodyOf = udf => udf.Substring(udf.IndexOf("=>") + 2).Trim();
 
-    // QTD vs PQTD
-    AddComparisonPair(2,
-        WrapHF(2, $@"CALCULATE(
-        baseMeasure,
-        DATESQTD( {dateColumn} )
-    )"),
-        WrapHF(3, PreviousToDate("DATESQTD", dateColumn, -1, "YEAR")));
+    // Counterpart expression, for when the counterpart row was not selected in this run - built
+    // the same way as the UDFs above.
+    Func<int, string> CounterpartExpr = i =>
+    {
+        if (i == 1) return WrapHF(1, PreviousToDate("DATESYTD", dateColumn, -1, "YEAR"));
+        if (i == 3) return WrapHF(3, PreviousToDate("DATESQTD", dateColumn, -1, "YEAR"));
+        if (i == 5) return WrapHF(5, PreviousToDate("DATESWTD", dateColumn, -1, "YEAR"));
+        if (i == 8) return WrapHF(8, PreviousToDate("DATESMTD", dateColumn, -1, "YEAR"));
 
-    // WTD vs PYWTD (previous year, not the "previous week" PWTD variant)
-    AddComparisonPair(4,
-        WrapHF(4, $@"CALCULATE(
-        baseMeasure,
-        DATESWTD( {dateColumn} )
-    )"),
-        WrapHF(5, PreviousToDate("DATESWTD", dateColumn, -1, "YEAR")));
-
-    // MTD vs PMTD
-    AddComparisonPair(7,
-        WrapHF(7, $@"CALCULATE(
-        baseMeasure,
-        DATESMTD( {dateColumn} )
-    )"),
-        WrapHF(8, PreviousToDate("DATESMTD", dateColumn, -1, "YEAR")));
-
-    // RNm vs RNm LY
-    AddComparisonPair(12,
-        WrapHF(12, $@"VAR _ReferenceDate = MAX( {actualDateCol} )
-    VAR _PreviousDates =
-        DATESINPERIOD(
-            {dateColumn},
-            _ReferenceDate,
-            -{nMonths},
-            MONTH
-        )
-    RETURN
-        CALCULATE(
-            baseMeasure,
-            _PreviousDates
-        )"),
-        WrapHF(RollingMonthsLyIndex, $@"VAR _ReferenceDate = MAX( {actualDateCol} )
-    VAR _PreviousDates =
-        DATESINPERIOD(
-            {dateColumn},
-            _ReferenceDate,
-            -{nMonths},
-            MONTH
-        )
-    RETURN
-        CALCULATE(
-            baseMeasure,
-            {(isCalendar ? "DATEADD( _PreviousDates, -1, YEAR )" : "SAMEPERIODLASTYEAR( _PreviousDates )")}
-        )"));
-
-    // RNm avg vs RNm avg LY
-    AddComparisonPair(14,
-        WrapHF(14, $@"VAR _LastCurrentDate = MAX( {actualDateCol} )
-    VAR _Period =
-        DATESINPERIOD(
-            {dateColumn},
-            _LastCurrentDate,
-            -{nMonths},
-            MONTH
-        )
-    RETURN
-        CALCULATE(
-            AVERAGEX(
+        string rollingValue = i == RollingMonthsAvgLyIndex
+            ? $@"AVERAGEX(
                 VALUES( {yearMonthColumn} ),
                 baseMeasure
-            ),
-            _Period
-        )"),
-        WrapHF(RollingMonthsAvgLyIndex, $@"VAR _ReferenceDate = MAX( {actualDateCol} )
+            )"
+            : "baseMeasure";
+        return $@"// Reference: {rollingTiRef}
+    VAR _ReferenceDate = MAX( {actualDateCol} )
     VAR _PreviousDates =
         DATESINPERIOD(
             {dateColumn},
@@ -1995,16 +2000,167 @@ if (comparisonSupportedIndices.Any(i => checks[i].Checked && comparisonChecks[i]
             -{nMonths},
             MONTH
         )
-    VAR _ShiftedPeriod =
-        {(isCalendar ? "DATEADD( _PreviousDates, -1, YEAR )" : "SAMEPERIODLASTYEAR( _PreviousDates )")}
     RETURN
-        CALCULATE(
-            AVERAGEX(
-                VALUES( {yearMonthColumn} ),
-                baseMeasure
-            ),
-            _ShiftedPeriod
-        )"));
+        {WrapHF(i, isCalendar
+            // Same as the UDFs above: DATEADD needs the Calendar itself, so the shift is an outer CALCULATE
+            ? $@"CALCULATE(
+            CALCULATE( {rollingValue}, _PreviousDates ),
+            DATEADD( {dateColumn}, -1, YEAR )
+        )"
+            : $@"CALCULATE(
+            {rollingValue},
+            SAMEPERIODLASTYEAR( _PreviousDates )
+        )")}";
+    };
+
+    // Expression of a row: the body requested in this run, otherwise built as above
+    Func<int, string> RowExpr = i => checks[i].Checked && createdBodies.ContainsKey(suffixes[i].Text)
+        ? BodyOf(createdBodies[suffixes[i].Text])
+        : CounterpartExpr(i);
+
+    // Indents the lines after the first, so an inlined expression lines up under its VAR
+    Func<string, string> Indent = s => s.Replace("\r\n", "\n").Replace("\n", "\n    ");
+
+    Func<string, string> CleanLabel = s => s.Replace("  (classic date)", "").Replace(" *", "");
+
+    // UDFs in this run, by function name - excluded from the "existing UDFs" part of the list
+    var runFunctionNames = new HashSet<string>(
+        Enumerable.Range(0, checks.Count).Where(i => checks[i].Checked).Select(i => FuncName(suffixes[i].Text)));
+
+    foreach (var src in comparisonSources)
+    {
+        string srcSuffix = suffixes[src].Text;
+        if (!createdBodies.ContainsKey(srcSuffix))
+        {
+            skipped.Add($"Comparison for '{srcSuffix}' was NOT created - its own UDF expression was not generated.");
+            continue;
+        }
+        string actualExpr = BodyOf(createdBodies[srcSuffix]);
+
+        // Target list: (label, target suffix, expression, checked by default)
+        var targets = new List<Tuple<string, string, string, bool>>();
+        int cp = counterpartOf[src];
+        targets.Add(Tuple.Create($"{CleanLabel(checks[cp].Text)}  [{suffixes[cp].Text}]  - prior-period counterpart",
+            suffixes[cp].Text, RowExpr(cp), true));
+        for (int i = 0; i < checks.Count; i++)
+        {
+            if (i == src || i == cp || !checks[i].Checked || !createdBodies.ContainsKey(suffixes[i].Text)) continue;
+            targets.Add(Tuple.Create($"{CleanLabel(checks[i].Text)}  [{suffixes[i].Text}]",
+                suffixes[i].Text, BodyOf(createdBodies[suffixes[i].Text]), false));
+        }
+        foreach (var tiFn in Model.Functions
+            .Where(x => x.GetAnnotation("FunctionCategory") == "Time Intelligence" &&
+                        !runFunctionNames.Contains(x.Name) &&
+                        (x.Expression ?? "").Contains("baseMeasure") && x.Expression.Contains("=>") &&
+                        !x.Expression.Contains(devFuncName) && !x.Expression.Contains(idxFuncName))
+            .OrderBy(x => x.Name))
+        {
+            string fSuffix = string.IsNullOrWhiteSpace(tiFn.GetAnnotation("MeasureSuffix")) ? tiFn.Name : tiFn.GetAnnotation("MeasureSuffix");
+            targets.Add(Tuple.Create($"Existing UDF: {tiFn.Name}", fSuffix, BodyOf(tiFn.Expression), false));
+        }
+
+        // ---- Dialog: pick the targets and suffixes for this row ----
+        var cmpDlg = new Form {
+            Text = $"Comparison for {srcSuffix}", Width = 980, Height = 560,
+            MinimumSize = new Size(760, 400), FormBorderStyle = FormBorderStyle.Sizable,
+            StartPosition = FormStartPosition.CenterScreen, MaximizeBox = true, MinimizeBox = false, ShowIcon = false
+        };
+        var cmpLayout = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(12), ColumnCount = 1, RowCount = 5 };
+        cmpLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        cmpLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        cmpLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        cmpLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
+        cmpLayout.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        cmpDlg.Controls.Add(cmpLayout);
+
+        cmpLayout.Controls.Add(new Label {
+            Text = $"Compare {CleanLabel(checks[src].Text)} [{srcSuffix}] (_Actual) with the checked targets (_Target). " +
+                   "Each target creates a Dev and an idx UDF with the suffixes below; leave a suffix blank to skip it.",
+            AutoSize = true, MaximumSize = new Size(930, 0), Margin = new Padding(0, 0, 0, 8) }, 0, 0);
+
+        var cmpSearchRow = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, Margin = new Padding(0, 0, 0, 6) };
+        cmpSearchRow.Controls.Add(new Label { Text = "Search:", AutoSize = true, Margin = new Padding(0, 6, 6, 0) });
+        var cmpSearch = new TextBox { Width = 400 };
+        cmpSearchRow.Controls.Add(cmpSearch);
+        cmpLayout.Controls.Add(cmpSearchRow, 0, 1);
+
+        var cmpHeader = new Panel { Height = 20, Dock = DockStyle.Fill };
+        cmpHeader.Controls.Add(new Label { Text = "Target",     AutoSize = true, Location = new Point(0, 0),   Font = new Font(cmpDlg.Font, FontStyle.Bold) });
+        cmpHeader.Controls.Add(new Label { Text = "Dev suffix", AutoSize = true, Location = new Point(540, 0), Font = new Font(cmpDlg.Font, FontStyle.Bold) });
+        cmpHeader.Controls.Add(new Label { Text = "idx suffix", AutoSize = true, Location = new Point(730, 0), Font = new Font(cmpDlg.Font, FontStyle.Bold) });
+        cmpLayout.Controls.Add(cmpHeader, 0, 2);
+
+        var cmpList = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoScroll = true };
+        cmpLayout.Controls.Add(cmpList, 0, 3);
+
+        var targetRows = new List<Tuple<Panel, CheckBox, TextBox, TextBox>>();
+        foreach (var t in targets)
+        {
+            bool isCounterpart = targetRows.Count == 0;
+            string defaultDev = isCounterpart ? srcSuffix + " Dev" : $"{srcSuffix} vs {t.Item2} Dev";
+            string defaultIdx = isCounterpart ? srcSuffix + " idx" : $"{srcSuffix} vs {t.Item2} idx";
+            var row = new Panel { Width = 910, Height = 28, Margin = new Padding(0, 1, 0, 1) };
+            var rowCheck = new CheckBox { Text = t.Item1, Checked = t.Item4, AutoSize = false, Width = 530, Height = 24, Location = new Point(0, 2) };
+            var rowDev   = new TextBox { Text = defaultDev, Width = 180, Location = new Point(540, 2) };
+            var rowIdx   = new TextBox { Text = defaultIdx, Width = 180, Location = new Point(730, 2) };
+            row.Controls.Add(rowCheck);
+            row.Controls.Add(rowDev);
+            row.Controls.Add(rowIdx);
+            cmpList.Controls.Add(row);
+            targetRows.Add(Tuple.Create(row, rowCheck, rowDev, rowIdx));
+        }
+
+        // Search hides non-matching rows, but checked rows always stay visible
+        cmpSearch.TextChanged += (s, e) => {
+            foreach (var r in targetRows)
+                r.Item1.Visible = r.Item2.Checked || string.IsNullOrWhiteSpace(cmpSearch.Text) ||
+                                  r.Item2.Text.IndexOf(cmpSearch.Text, StringComparison.OrdinalIgnoreCase) >= 0;
+        };
+
+        var cmpButtons = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight, Margin = new Padding(0, 10, 0, 0) };
+        var cmpOk     = new Button { Text = "OK",     AutoSize = true, DialogResult = DialogResult.OK,     Margin = new Padding(0, 0, 8, 0) };
+        var cmpCancel = new Button { Text = "Skip",   AutoSize = true, DialogResult = DialogResult.Cancel };
+        cmpButtons.Controls.Add(cmpOk);
+        cmpButtons.Controls.Add(cmpCancel);
+        cmpLayout.Controls.Add(cmpButtons, 0, 4);
+        cmpDlg.AcceptButton = cmpOk;
+        cmpDlg.CancelButton = cmpCancel;
+
+        if (cmpDlg.ShowDialog() != DialogResult.OK)
+        {
+            skipped.Add($"Comparison for '{srcSuffix}' was skipped in the target dialog.");
+            continue;
+        }
+
+        for (int t = 0; t < targets.Count; t++)
+        {
+            if (!targetRows[t].Item2.Checked) continue;
+            string targetSuffix = targets[t].Item2;
+            string targetExpr   = targets[t].Item3;
+
+            foreach (var pair in new[] {
+                Tuple.Create(targetRows[t].Item3.Text.Trim(), devFuncName, "Absolute deviation"),
+                Tuple.Create(targetRows[t].Item4.Text.Trim(), idxFuncName, "Percentage change") })
+            {
+                string cmpSuffix = pair.Item1;
+                if (string.IsNullOrWhiteSpace(cmpSuffix)) continue;
+
+                CreateUDF(FuncName(cmpSuffix), $@"(
+    baseMeasure: ANYREF
+) =>
+    // Actual: {srcSuffix}, target: {targetSuffix}
+    VAR _Actual =
+        {Indent(Indent(actualExpr))}
+    VAR _Target =
+        {Indent(Indent(targetExpr))}
+    RETURN
+        {pair.Item2}( _Actual, _Target )",
+                cmpSuffix, $"{pair.Item3} of {srcSuffix} vs. {targetSuffix}, using {pair.Item2} ({cmpSuffix}).");
+
+                _comparisonUdfCount++;
+            }
+        }
+    }
 }
 
 string doneSummary = "Done! " + (checks.Count(c => c.Checked) + _fiscalUdfCount + _comparisonUdfCount) + " UDF(s) requested under prefix '" + namePrefix + "'.";
@@ -2018,12 +2174,15 @@ class ComboBoxItem
     public Column   Column   { get; private set; }
     public Calendar Calendar { get; private set; }
     public Table    Table    { get; private set; }
+    // Optional hint shown after the item, e.g. why a column is suggested
+    public string   Note     { get; set; }
     public ComboBoxItem(Column   column)   { this.Column   = column;   }
     public ComboBoxItem(Calendar calendar) { this.Calendar = calendar; }
     public ComboBoxItem(Table    table)    { this.Table    = table;    }
     public override string ToString() =>
-        Table != null ? Table.Name :
+        (Table != null ? Table.Name :
         Calendar == null
             ? "Column: "   + Column.DaxObjectFullName
-            : "Calendar: " + Calendar.DaxObjectFullName;
+            : "Calendar: " + Calendar.DaxObjectFullName)
+        + (string.IsNullOrEmpty(Note) ? "" : "   (" + Note + ")");
 }
