@@ -90,7 +90,7 @@ articles:
   - title: Getting started with data agents (Fabric data agent workshop)
     url: https://github.com/microsoft/fabric-data-agent-workshop
     author: Sandeep Pawar
-    topics: [Conversational BI]
+    topics: [Conversational BI, GitHub repositories]
     added: 2026-10-27
   - title: Luca Zavarella on Fabric Data Agent
     url: https://fabricdataagent.com/contributors/luca-zavarella/
@@ -134,4 +134,15 @@ articles:
   - title: The Skill Leaderboard
     url: https://www.skillleaderboard.com/
     topics: [AI agents and skills]
+    added: 2026-10-27
+  - title: Fabric Data Agent tools
+    url: https://fabricdataagent.com/tools/
+    author: Fabric Data Agent community
+    topics: [Tools, Conversational BI]
+    added: 2026-10-27
+    note: For evaluating Fabric data agents.
+  - title: fabric-toolbox
+    url: https://github.com/microsoft/fabric-toolbox
+    author: Microsoft (GitHub)
+    topics: [Tools, GitHub repositories]
     added: 2026-10-27
