@@ -1,6 +1,6 @@
 # Issue drafts: model cleaning and setup flow
 
-Drafts to create as GitHub issues. Issue 0 is the tracking issue; issues 1-12 are its sub-issues.
+Drafts to create as GitHub issues. Issue 0 is the tracking issue; issues 1-13 are its sub-issues.
 Delete this file once the issues exist.
 
 ---
@@ -107,3 +107,12 @@ macros, with organized numbers and naming.
 
 - Consider a folder structure that follows the organization of the macros.
 - Starting point: `TE macros/Conferences/New Stars of Data 2025/MacroActions.json`.
+
+## 13. Optional task: scan the model and create model-dependent DAX UDFs
+
+When cleaning, scan the model to get familiar with what already exists, then create
+model-dependent DAX UDFs.
+
+- Probably not possible with a macro alone.
+- Deliverable: a specification of an optional task in the cleaning flow.
+- Related: `TE macros/TE3/5 - Create measure from model dependent functions.cs`.
