@@ -1,6 +1,6 @@
 # Issue drafts: model cleaning and setup flow
 
-Drafts to create as GitHub issues. Issue 0 is the tracking issue; issues 1-13 are its sub-issues.
+Drafts to create as GitHub issues. Issue 0 is the tracking issue; issues 1-14 are its sub-issues.
 Delete this file once the issues exist.
 
 ---
@@ -21,6 +21,16 @@ Input on how the flow runs:
 
 - Stop between tasks for review and push to the model before proceeding, or
 - Auto update: run all tasks without stopping.
+- Write commits as part of the process? Mainly for brownfield, optional for greenfield.
+
+Workflows (for now):
+
+- New development.
+- Continuous development and maintenance.
+- Initial cleaning and improvement.
+- Ad hoc task.
+
+The flow also includes a step to create base measures (see 14).
 
 ---
 
@@ -68,6 +78,7 @@ or for the model. For example:
 - Create descriptions with AI?
 - Add cultures? If so, the translations are added by AI.
 - Stop between tasks for review and push to the model before proceeding, or auto update?
+- Write commits as part of the process? Optional for greenfield.
 
 Customer-specific input (environment, first time), used to improve the spec and the AI,
 and as input to descriptions:
@@ -84,6 +95,8 @@ Model-specific input:
 ## 7. Brownfield: checks with reports
 
 For an existing model, add checks together with the reports that use it.
+
+- Write commits as part of the process (mainly used for brownfield).
 
 ## 8. Report perspectives: update after report changes
 
@@ -128,3 +141,10 @@ model-dependent DAX UDFs.
 - Probably not possible with a macro alone.
 - Deliverable: a specification of an optional task in the cleaning flow.
 - Related: `TE macros/TE3/5 - Create measure from model dependent functions.cs`.
+
+## 14. Create base measures
+
+Add a step in the flow to create base measures.
+
+- Not often from a script, unless it is a basic SUM.
+- Starting point: `TE macros/Conferences/New Stars of Data 2025/4. Autogenerate SUM for selected measures.csx`.
