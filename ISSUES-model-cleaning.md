@@ -69,6 +69,18 @@ or for the model. For example:
 - Add cultures? If so, the translations are added by AI.
 - Stop between tasks for review and push to the model before proceeding, or auto update?
 
+Customer-specific input (environment, first time), used to improve the spec and the AI,
+and as input to descriptions:
+
+- Terminology.
+- Description of the business.
+
+Model-specific input:
+
+- Who the users are.
+- When to use the model.
+- Whether consumption is through an App or a PBIR report.
+
 ## 7. Brownfield: checks with reports
 
 For an existing model, add checks together with the reports that use it.
