@@ -17,6 +17,11 @@ Cleaning order:
 3. Format measures.
 4. Do not summarize columns, display folders and model documentation.
 
+Input on how the flow runs:
+
+- Stop between tasks for review and push to the model before proceeding, or
+- Auto update: run all tasks without stopping.
+
 ---
 
 ## 1. Cleaning flow: remove items before fixing BPA rules
@@ -49,6 +54,7 @@ Macro that organizes measures and columns into display folders.
 Macro that adds model documentation.
 
 - Starting point: `TE macros/Conferences/New Stars of Data 2025/8. Create model documentation.csx`.
+- Input: whether to create descriptions with AI.
 - Later: decide and describe what needs to be documented.
 
 ## 6. Greenfield: setup walkthrough
@@ -59,6 +65,9 @@ or for the model. For example:
 - Add currency conversion?
 - Add model documentation?
 - Add report perspectives?
+- Create descriptions with AI?
+- Add cultures? If so, the translations are added by AI.
+- Stop between tasks for review and push to the model before proceeding, or auto update?
 
 ## 7. Brownfield: checks with reports
 
