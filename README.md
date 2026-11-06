@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/logo/logo-b-axis.svg" alt="Done in 60 seconds logo" width="160">
+</p>
+
 # DoneIn60seconds
 
 Solving common Power BI challenges in less than 60 seconds: deterministic, token free and model-independent.
